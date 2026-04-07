@@ -74,6 +74,7 @@ DASHBOARD_HTML = '''
         .stat-card.success .stat-value { color: #28a745; }
         .stat-card.primary .stat-value { color: #0078D4; }
         .stat-card.info .stat-value { color: #17a2b8; }
+        .stat-card.guest .stat-value { color: #6c757d; }
         .charts-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -130,6 +131,10 @@ DASHBOARD_HTML = '''
             background: #17a2b8;
             color: white;
         }
+        .filter-btn.guest.active {
+            background: #6c757d;
+            color: white;
+        }
         .export-btn {
             background: #28a745;
             color: white;
@@ -162,8 +167,10 @@ DASHBOARD_HTML = '''
         .badge-success { background: #28a745; }
         .badge-info { background: #17a2b8; }
         .badge-dark { background: #6c757d; }
+        .badge-guest { background: #6c757d; }
         .sign-blocked { background: #fff5f5; border-left: 3px solid #dc3545; }
         .inactive-user { background: #fffbf0; border-left: 3px solid #ffc107; }
+        .guest-user { background: #f8f9fa; border-left: 3px solid #6c757d; opacity: 0.8; }
         .loading { text-align: center; padding: 50px; }
         .spinner {
             border: 4px solid #f3f3f3;
@@ -203,6 +210,8 @@ DASHBOARD_HTML = '''
                 <input type="text" id="searchInput" class="search-box" placeholder="🔍 Cari nama, email, atau department...">
                 <div class="filter-group">
                     <button id="filterAll" class="filter-btn active">📋 All Users</button>
+                    <button id="filterInternal" class="filter-btn">🏢 Internal Only</button>
+                    <button id="filterGuest" class="filter-btn guest">🌐 Guest Only (#EXT#)</button>
                     <button id="filterLicensed" class="filter-btn">✅ Licensed</button>
                     <button id="filterUnlicensed" class="filter-btn">❌ Unlicensed</button>
                     <button id="filterBlockedLicensed" class="filter-btn warning">🚫 Blocked + Licensed</button>
@@ -218,7 +227,7 @@ DASHBOARD_HTML = '''
                             <th>Name</th>
                             <th>Email</th>
                             <th>Department</th>
-                            <th>User Type</th>
+                            <th>Type</th>
                             <th>Sign Status</th>
                             <th>Last Sign In</th>
                             <th>Licenses</th>
@@ -251,6 +260,8 @@ DASHBOARD_HTML = '''
         function updateStats(summary) {
             document.getElementById('statsGrid').innerHTML = `
                 <div class="stat-card primary" onclick="setFilter('all')"><div class="stat-label">Total Users</div><div class="stat-value">${summary.total_users}</div></div>
+                <div class="stat-card primary" onclick="setFilter('internal')"><div class="stat-label">Internal Users</div><div class="stat-value">${summary.internal_users}</div></div>
+                <div class="stat-card guest" onclick="setFilter('guest')"><div class="stat-label">Guest Users</div><div class="stat-value">${summary.guest_users}</div></div>
                 <div class="stat-card success" onclick="setFilter('licensed')"><div class="stat-label">Licensed</div><div class="stat-value">${summary.licensed_users}</div></div>
                 <div class="stat-card warning" onclick="setFilter('unlicensed')"><div class="stat-label">Unlicensed</div><div class="stat-value">${summary.unlicensed_users}</div></div>
                 <div class="stat-card warning" onclick="setFilter('blocked_licensed')"><div class="stat-label">Blocked + Licensed</div><div class="stat-value">${summary.blocked_licensed}</div></div>
@@ -262,8 +273,13 @@ DASHBOARD_HTML = '''
         
         function setFilter(filter) {
             currentFilter = filter;
-            const btns = ['filterAll', 'filterLicensed', 'filterUnlicensed', 'filterBlockedLicensed', 'filterBlockedUnlicensed', 'filterInactiveLicensed'];
-            const mapping = {'filterAll':'all','filterLicensed':'licensed','filterUnlicensed':'unlicensed','filterBlockedLicensed':'blocked_licensed','filterBlockedUnlicensed':'blocked_unlicensed','filterInactiveLicensed':'inactive_licensed'};
+            const btns = ['filterAll', 'filterInternal', 'filterGuest', 'filterLicensed', 'filterUnlicensed', 'filterBlockedLicensed', 'filterBlockedUnlicensed', 'filterInactiveLicensed'];
+            const mapping = {
+                'filterAll':'all', 'filterInternal':'internal', 'filterGuest':'guest',
+                'filterLicensed':'licensed', 'filterUnlicensed':'unlicensed',
+                'filterBlockedLicensed':'blocked_licensed', 'filterBlockedUnlicensed':'blocked_unlicensed',
+                'filterInactiveLicensed':'inactive_licensed'
+            };
             btns.forEach(btnId => {
                 const btn = document.getElementById(btnId);
                 if (mapping[btnId] === filter) btn.classList.add('active');
@@ -280,12 +296,12 @@ DASHBOARD_HTML = '''
                 data: { labels, datasets: [{ label: 'Users', data: values, backgroundColor: '#0078D4' }] },
                 options: { responsive: true, maintainAspectRatio: true }
             });
-            const licensed = allUsers.filter(u => u.license_count > 0 && !u.sign_blocked).length;
-            const unlicensed = allUsers.filter(u => u.license_count === 0 && !u.sign_blocked).length;
+            const internal = allUsers.filter(u => !u.is_guest && !u.sign_blocked).length;
+            const guest = allUsers.filter(u => u.is_guest && !u.sign_blocked).length;
             const blocked = allUsers.filter(u => u.sign_blocked).length;
             new Chart(document.getElementById('statusChart'), {
                 type: 'doughnut',
-                data: { labels: ['Licensed Active', 'Unlicensed Active', 'Blocked'], datasets: [{ data: [licensed, unlicensed, blocked], backgroundColor: ['#28a745', '#ffc107', '#dc3545'] }] },
+                data: { labels: ['Internal Active', 'Guest Active', 'Blocked'], datasets: [{ data: [internal, guest, blocked], backgroundColor: ['#0078D4', '#6c757d', '#dc3545'] }] },
                 options: { responsive: true }
             });
         }
@@ -293,12 +309,18 @@ DASHBOARD_HTML = '''
         function getFilteredUsers() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             let filtered = allUsers;
-            if (currentFilter === 'licensed') filtered = allUsers.filter(u => u.license_count > 0 && !u.sign_blocked);
-            else if (currentFilter === 'unlicensed') filtered = allUsers.filter(u => u.license_count === 0 && !u.sign_blocked);
+            
+            if (currentFilter === 'internal') filtered = allUsers.filter(u => !u.is_guest);
+            else if (currentFilter === 'guest') filtered = allUsers.filter(u => u.is_guest);
+            else if (currentFilter === 'licensed') filtered = allUsers.filter(u => u.license_count > 0 && !u.sign_blocked && !u.is_guest);
+            else if (currentFilter === 'unlicensed') filtered = allUsers.filter(u => u.license_count === 0 && !u.sign_blocked && !u.is_guest);
             else if (currentFilter === 'blocked_licensed') filtered = allUsers.filter(u => u.sign_blocked && u.license_count > 0);
             else if (currentFilter === 'blocked_unlicensed') filtered = allUsers.filter(u => u.sign_blocked && u.license_count === 0);
-            else if (currentFilter === 'inactive_licensed') filtered = allUsers.filter(u => u.inactive_days > 90 && u.license_count > 0 && !u.sign_blocked);
-            if (searchTerm) filtered = filtered.filter(u => u.name.toLowerCase().includes(searchTerm) || u.email.toLowerCase().includes(searchTerm) || u.department.toLowerCase().includes(searchTerm));
+            else if (currentFilter === 'inactive_licensed') filtered = allUsers.filter(u => u.inactive_days > 90 && u.license_count > 0 && !u.sign_blocked && !u.is_guest);
+            
+            if (searchTerm) {
+                filtered = filtered.filter(u => u.name.toLowerCase().includes(searchTerm) || u.email.toLowerCase().includes(searchTerm) || (u.department && u.department.toLowerCase().includes(searchTerm)));
+            }
             return filtered;
         }
         
@@ -306,21 +328,28 @@ DASHBOARD_HTML = '''
             const filtered = getFilteredUsers();
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
+            
             filtered.forEach(user => {
                 const row = tbody.insertRow();
                 let rowClass = '';
                 if (user.sign_blocked) rowClass = 'sign-blocked';
                 else if (user.inactive_days > 90 && user.license_count > 0) rowClass = 'inactive-user';
+                else if (user.is_guest) rowClass = 'guest-user';
                 if (rowClass) row.classList.add(rowClass);
+                
                 row.insertCell(0).innerHTML = user.name;
                 row.insertCell(1).innerHTML = `<a href="mailto:${user.email}">${user.email}</a>`;
                 row.insertCell(2).innerHTML = user.department || '-';
-                row.insertCell(3).innerHTML = user.user_type === 'Member' ? '👤 Member' : '👥 Guest';
+                
+                let userTypeHtml = user.is_guest ? '<span class="badge badge-guest">🌐 Guest</span>' : '<span class="badge badge-success">🏢 Internal</span>';
+                row.insertCell(3).innerHTML = userTypeHtml;
+                
                 let signStatus = '';
                 if (user.sign_blocked) signStatus = '<span class="badge badge-warning">🚫 Blocked</span>';
                 else if (user.inactive_days > 90) signStatus = '<span class="badge badge-info">⏰ Inactive ' + user.inactive_days + ' days</span>';
                 else signStatus = '<span class="badge badge-success">✅ Active</span>';
                 row.insertCell(4).innerHTML = signStatus;
+                
                 row.insertCell(5).innerHTML = user.last_sign_in || '<span class="badge badge-dark">Never</span>';
                 row.insertCell(6).innerHTML = user.licenses.map(l => `<span class="badge">${l}</span>`).join(' ') || '<span class="badge badge-warning">No License</span>';
                 row.insertCell(7).innerHTML = user.license_count;
@@ -331,7 +360,7 @@ DASHBOARD_HTML = '''
             const filtered = getFilteredUsers();
             let csv = "Name,Email,Department,User Type,Sign Status,Last Sign In,Inactive Days,Licenses,License Count\\n";
             filtered.forEach(u => {
-                csv += `"${u.name}","${u.email}","${u.department}","${u.user_type}","${u.sign_blocked ? 'Blocked' : (u.inactive_days > 90 ? 'Inactive ' + u.inactive_days + ' days' : 'Active')}","${u.last_sign_in || 'Never'}","${u.inactive_days}","${u.licenses.join('; ')}",${u.license_count}\\n`;
+                csv += `"${u.name}","${u.email}","${u.department || ''}","${u.is_guest ? 'Guest' : 'Internal'}","${u.sign_blocked ? 'Blocked' : (u.inactive_days > 90 ? 'Inactive ' + u.inactive_days + ' days' : 'Active')}","${u.last_sign_in || 'Never'}","${u.inactive_days || '-'}","${u.licenses.join('; ')}",${u.license_count}\\n`;
             });
             const blob = new Blob([csv], {type:'text/csv'});
             const a = document.createElement('a');
@@ -342,6 +371,8 @@ DASHBOARD_HTML = '''
         
         document.getElementById('searchInput').addEventListener('keyup', renderTable);
         document.getElementById('filterAll').onclick = () => setFilter('all');
+        document.getElementById('filterInternal').onclick = () => setFilter('internal');
+        document.getElementById('filterGuest').onclick = () => setFilter('guest');
         document.getElementById('filterLicensed').onclick = () => setFilter('licensed');
         document.getElementById('filterUnlicensed').onclick = () => setFilter('unlicensed');
         document.getElementById('filterBlockedLicensed').onclick = () => setFilter('blocked_licensed');
@@ -406,6 +437,7 @@ LOGIN_HTML = '''
         <h1>Microsoft 365 License Monitor Pro</h1>
         <p class="subtitle">License & User Activity Monitoring</p>
         <ul class="features">
+            <li>🏢 Internal & 🌐 Guest users separated</li>
             <li>✅ Licensed & Unlicensed users</li>
             <li>🚫 Blocked users (with/without license)</li>
             <li>⏰ Inactive >90 days + Licensed (cost saving)</li>
@@ -502,6 +534,9 @@ def api_license_data():
     today = datetime.now()
     
     for user in users:
+        email = user.get("userPrincipalName", "")
+        is_guest = "#EXT#" in email or user.get("userType") == "Guest"
+        
         # License
         licenses = user.get("assignedLicenses", [])
         license_names = []
@@ -513,7 +548,7 @@ def api_license_data():
         
         sign_blocked = user.get("accountEnabled") == False
         
-        # Last sign in (hanya untuk user yang pernah login)
+        # Last sign in
         last_sign_in_str = 'Never'
         inactive_days = None
         sign_in_activity = user.get("signInActivity", {})
@@ -528,13 +563,13 @@ def api_license_data():
                 last_sign_in_str = last_sign_in_date[:10] if last_sign_in_date else 'Never'
                 inactive_days = None
         else:
-            inactive_days = None  # User belum pernah login, ga dianggap inactive
+            inactive_days = None
         
         processed_users.append({
             "name": user.get("displayName", "N/A"),
-            "email": user.get("userPrincipalName", "N/A"),
+            "email": email,
             "department": user.get("department", "N/A"),
-            "user_type": user.get("userType", "Member"),
+            "is_guest": is_guest,
             "license_count": len(license_names),
             "licenses": license_names,
             "sign_blocked": sign_blocked,
@@ -542,24 +577,30 @@ def api_license_data():
             "inactive_days": inactive_days if inactive_days else None
         })
     
-    # Hitung statistik
-    licensed_active = len([u for u in processed_users if u['license_count'] > 0 and not u['sign_blocked']])
-    unlicensed_active = len([u for u in processed_users if u['license_count'] == 0 and not u['sign_blocked']])
+    # Pisahkan internal dan guest
+    internal_users = [u for u in processed_users if not u['is_guest']]
+    guest_users = [u for u in processed_users if u['is_guest']]
+    
+    # Hitung statistik (hanya untuk internal users untuk licensed/unlicensed/inactive)
+    licensed_active = len([u for u in internal_users if u['license_count'] > 0 and not u['sign_blocked']])
+    unlicensed_active = len([u for u in internal_users if u['license_count'] == 0 and not u['sign_blocked']])
     blocked_licensed = len([u for u in processed_users if u['sign_blocked'] and u['license_count'] > 0])
     blocked_unlicensed = len([u for u in processed_users if u['sign_blocked'] and u['license_count'] == 0])
-    inactive_licensed = len([u for u in processed_users if u['inactive_days'] is not None and u['inactive_days'] > 90 and u['license_count'] > 0 and not u['sign_blocked']])
+    inactive_licensed = len([u for u in internal_users if u['inactive_days'] is not None and u['inactive_days'] > 90 and u['license_count'] > 0 and not u['sign_blocked']])
     
     return jsonify({
         'users': processed_users,
         'license_stats': dict(sorted(license_stats.items(), key=lambda x: x[1], reverse=True)),
         'summary': {
             'total_users': len(processed_users),
+            'internal_users': len(internal_users),
+            'guest_users': len(guest_users),
             'licensed_users': licensed_active,
             'unlicensed_users': unlicensed_active,
             'blocked_licensed': blocked_licensed,
             'blocked_unlicensed': blocked_unlicensed,
             'inactive_licensed': inactive_licensed,
-            'coverage': round(licensed_active / len(processed_users) * 100, 1) if processed_users else 0
+            'coverage': round(licensed_active / len(internal_users) * 100, 1) if internal_users else 0
         }
     })
 
