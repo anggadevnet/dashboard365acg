@@ -13,16 +13,16 @@ TENANT_ID = os.getenv("TENANT_ID")
 REDIRECT_URI = os.getenv("REDIRECT_URI")
 
 AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
-SCOPES = ["User.Read", "User.Read.All", "Organization.Read.All", "AuditLog.Read.All", "UserAuthenticationMethod.Read.All"]
+SCOPES = ["User.Read", "User.Read.All", "Organization.Read.All", "AuditLog.Read.All"]
 
-# HTML Dashboard ULTIMATE VERSION
+# HTML Dashboard FINAL VERSION (Tanpa MFA)
 DASHBOARD_HTML = '''
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>M365 License Monitor Pro - Ultimate</title>
+    <title>M365 License Monitor Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -54,7 +54,7 @@ DASHBOARD_HTML = '''
         .container { max-width: 1400px; margin: 0 auto; padding: 30px; }
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 15px;
             margin-bottom: 30px;
         }
@@ -74,7 +74,6 @@ DASHBOARD_HTML = '''
         .stat-card.success .stat-value { color: #28a745; }
         .stat-card.primary .stat-value { color: #0078D4; }
         .stat-card.info .stat-value { color: #17a2b8; }
-        .stat-card.danger .stat-value { color: #fd7e14; }
         .charts-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -131,10 +130,6 @@ DASHBOARD_HTML = '''
             background: #17a2b8;
             color: white;
         }
-        .filter-btn.danger.active {
-            background: #fd7e14;
-            color: white;
-        }
         .export-btn {
             background: #28a745;
             color: white;
@@ -167,10 +162,8 @@ DASHBOARD_HTML = '''
         .badge-success { background: #28a745; }
         .badge-info { background: #17a2b8; }
         .badge-dark { background: #6c757d; }
-        .badge-danger { background: #fd7e14; }
         .sign-blocked { background: #fff5f5; border-left: 3px solid #dc3545; }
         .inactive-user { background: #fffbf0; border-left: 3px solid #ffc107; }
-        .no-mfa-user { background: #fff0f0; border-left: 3px solid #fd7e14; }
         .loading { text-align: center; padding: 50px; }
         .spinner {
             border: 4px solid #f3f3f3;
@@ -219,7 +212,6 @@ DASHBOARD_HTML = '''
                     <button id="filterUnlicensed" class="filter-btn">❌ Unlicensed</button>
                     <button id="filterBlockedAll" class="filter-btn warning">🚫 All Blocked</button>
                     <button id="filterInactiveLicensed" class="filter-btn info">⏰ Inactive + Licensed</button>
-                    <button id="filterNoMFA" class="filter-btn danger">🔓 MFA Not Enabled</button>
                 </div>
                 <button id="exportBtn" class="export-btn">📥 Export CSV</button>
             </div>
@@ -234,7 +226,6 @@ DASHBOARD_HTML = '''
                             <th>Department</th>
                             <th>User Type</th>
                             <th>Sign Status</th>
-                            <th>MFA Status</th>
                             <th>Last Sign In</th>
                             <th>Licenses</th>
                             <th>Count</th>
@@ -289,10 +280,6 @@ DASHBOARD_HTML = '''
                     <div class="stat-label">Inactive + Licensed</div>
                     <div class="stat-value">${summary.inactive_licensed}</div>
                 </div>
-                <div class="stat-card danger" onclick="setFilter('no_mfa')">
-                    <div class="stat-label">No MFA (Active)</div>
-                    <div class="stat-value">${summary.no_mfa_users}</div>
-                </div>
                 <div class="stat-card primary" onclick="setFilter('all')">
                     <div class="stat-label">Coverage</div>
                     <div class="stat-value">${summary.coverage}%</div>
@@ -315,8 +302,8 @@ DASHBOARD_HTML = '''
                 options: { responsive: true, maintainAspectRatio: true }
             });
             
-            const licensed = allUsers.filter(u => u.license_count > 0 && !u.sign_blocked && u.active).length;
-            const unlicensed = allUsers.filter(u => u.license_count === 0 && !u.sign_blocked && u.active).length;
+            const licensed = allUsers.filter(u => u.license_count > 0 && !u.sign_blocked).length;
+            const unlicensed = allUsers.filter(u => u.license_count === 0 && !u.sign_blocked).length;
             const blocked = allUsers.filter(u => u.sign_blocked).length;
             new Chart(document.getElementById('statusChart'), {
                 type: 'doughnut',
@@ -333,7 +320,6 @@ DASHBOARD_HTML = '''
             else if (currentFilter === 'unlicensed') filtered = allUsers.filter(u => u.license_count === 0 && !u.sign_blocked);
             else if (currentFilter === 'blocked_all') filtered = allUsers.filter(u => u.sign_blocked);
             else if (currentFilter === 'inactive_licensed') filtered = allUsers.filter(u => u.inactive_days > 90 && u.license_count > 0 && !u.sign_blocked);
-            else if (currentFilter === 'no_mfa') filtered = allUsers.filter(u => !u.mfa_enabled && !u.sign_blocked && u.active);
             
             if (searchTerm) {
                 filtered = filtered.filter(u => 
@@ -355,7 +341,6 @@ DASHBOARD_HTML = '''
                 let rowClass = '';
                 if (user.sign_blocked) rowClass = 'sign-blocked';
                 else if (user.inactive_days > 90 && user.license_count > 0) rowClass = 'inactive-user';
-                else if (!user.mfa_enabled && user.active) rowClass = 'no-mfa-user';
                 if (rowClass) row.classList.add(rowClass);
                 
                 row.insertCell(0).innerHTML = user.name;
@@ -369,20 +354,17 @@ DASHBOARD_HTML = '''
                 else signStatus = '<span class="badge badge-success">✅ Active</span>';
                 row.insertCell(4).innerHTML = signStatus;
                 
-                let mfaStatus = user.mfa_enabled ? '<span class="badge badge-success">✅ MFA Enabled</span>' : '<span class="badge badge-danger">🔓 MFA Not Enabled</span>';
-                row.insertCell(5).innerHTML = mfaStatus;
-                
-                row.insertCell(6).innerHTML = user.last_sign_in || '<span class="badge badge-dark">Never</span>';
-                row.insertCell(7).innerHTML = user.licenses.map(l => `<span class="badge">${l}</span>`).join(' ') || '<span class="badge badge-warning">No License</span>';
-                row.insertCell(8).innerHTML = user.license_count;
+                row.insertCell(5).innerHTML = user.last_sign_in || '<span class="badge badge-dark">Never</span>';
+                row.insertCell(6).innerHTML = user.licenses.map(l => `<span class="badge">${l}</span>`).join(' ') || '<span class="badge badge-warning">No License</span>';
+                row.insertCell(7).innerHTML = user.license_count;
             });
         }
         
         function exportCSV() {
             const filtered = getFilteredUsers();
-            let csv = "Name,Email,Department,User Type,Sign Status,MFA Status,Last Sign In,Inactive Days,Licenses,License Count\\n";
+            let csv = "Name,Email,Department,User Type,Sign Status,Last Sign In,Inactive Days,Licenses,License Count\\n";
             filtered.forEach(u => {
-                csv += `"${u.name}","${u.email}","${u.department}","${u.user_type}","${u.sign_blocked ? 'Blocked' : (u.inactive_days > 90 ? 'Inactive ' + u.inactive_days + ' days' : 'Active')}","${u.mfa_enabled ? 'MFA Enabled' : 'MFA NOT Enabled'}","${u.last_sign_in || 'Never'}","${u.inactive_days}","${u.licenses.join('; ')}",${u.license_count}\\n`;
+                csv += `"${u.name}","${u.email}","${u.department}","${u.user_type}","${u.sign_blocked ? 'Blocked' : (u.inactive_days > 90 ? 'Inactive ' + u.inactive_days + ' days' : 'Active')}","${u.last_sign_in || 'Never'}","${u.inactive_days}","${u.licenses.join('; ')}",${u.license_count}\\n`;
             });
             const blob = new Blob([csv], {type:'text/csv'});
             const a = document.createElement('a');
@@ -392,11 +374,10 @@ DASHBOARD_HTML = '''
         }
         
         function updateFilterButtons() {
-            const btns = ['filterAll', 'filterLicensed', 'filterUnlicensed', 'filterBlockedAll', 'filterInactiveLicensed', 'filterNoMFA'];
+            const btns = ['filterAll', 'filterLicensed', 'filterUnlicensed', 'filterBlockedAll', 'filterInactiveLicensed'];
             const mapping = {
                 'filterAll': 'all', 'filterLicensed': 'licensed', 'filterUnlicensed': 'unlicensed',
-                'filterBlockedAll': 'blocked_all', 'filterInactiveLicensed': 'inactive_licensed',
-                'filterNoMFA': 'no_mfa'
+                'filterBlockedAll': 'blocked_all', 'filterInactiveLicensed': 'inactive_licensed'
             };
             btns.forEach(btnId => {
                 const btn = document.getElementById(btnId);
@@ -412,7 +393,6 @@ DASHBOARD_HTML = '''
         document.getElementById('filterUnlicensed').onclick = () => setFilter('unlicensed');
         document.getElementById('filterBlockedAll').onclick = () => setFilter('blocked_all');
         document.getElementById('filterInactiveLicensed').onclick = () => setFilter('inactive_licensed');
-        document.getElementById('filterNoMFA').onclick = () => setFilter('no_mfa');
         document.getElementById('exportBtn').onclick = exportCSV;
         
         loadData();
@@ -443,7 +423,7 @@ LOGIN_HTML = '''
             background: white;
             border-radius: 20px;
             padding: 50px;
-            max-width: 600px;
+            max-width: 550px;
             text-align: center;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
@@ -471,19 +451,18 @@ LOGIN_HTML = '''
     <div class="card">
         <div class="logo">📊</div>
         <h1>Microsoft 365 License Monitor Pro</h1>
-        <p class="subtitle">Ultimate License & Security Monitoring</p>
+        <p class="subtitle">License & User Activity Monitoring</p>
         <ul class="features">
             <li>✅ Full user license assignment tracking</li>
             <li>🚫 Sign-blocked users detection</li>
             <li>⏰ Inactive users with licenses (cost saving)</li>
-            <li>🔓 Users without MFA enabled (security risk)</li>
             <li>📊 Advanced analytics & charts</li>
             <li>📥 Export full report to CSV</li>
         </ul>
         <a href="/login" class="btn">🔐 Login dengan Microsoft 365</a>
         <div class="footer">
             <p>Akses menggunakan akun Microsoft 365 perusahaan Anda</p>
-            <div class="version">Version 4.0 - With MFA Status Detection</div>
+            <div class="version">Version 5.0 - Fast Loading</div>
         </div>
     </div>
 </body>
@@ -569,27 +548,11 @@ def api_license_data():
     skus = skus_response.json().get("value", []) if skus_response.status_code == 200 else []
     sku_map = {sku.get("skuId"): sku.get("skuPartNumber", "Unknown") for sku in skus}
     
-    # Ambil MFA status untuk setiap user (via authentication methods)
-    mfa_status_cache = {}
-    for user in users:
-        user_id = user.get("id")
-        if user_id:
-            mfa_url = f"https://graph.microsoft.com/v1.0/users/{user_id}/authentication/methods"
-            mfa_response = requests.get(mfa_url, headers=headers)
-            if mfa_response.status_code == 200:
-                methods = mfa_response.json().get("value", [])
-                # Cek apakah ada metode MFA (Microsoft Authenticator, SMS, dll)
-                mfa_enabled = len(methods) > 0
-                mfa_status_cache[user_id] = mfa_enabled
-            else:
-                mfa_status_cache[user_id] = False
-    
-    # Proses data user
+    # Proses data user (TANPA MFA)
     processed_users = []
     license_stats = {}
     blocked_count = 0
     inactive_licensed_count = 0
-    no_mfa_count = 0
     today = datetime.now()
     
     for user in users:
@@ -602,9 +565,8 @@ def api_license_data():
                 license_names.append(sku_map[sku_id])
                 license_stats[sku_map[sku_id]] = license_stats.get(sku_map[sku_id], 0) + 1
         
-        # Deteksi sign blocked & active
+        # Deteksi sign blocked
         sign_blocked = user.get("accountEnabled") == False
-        active = not sign_blocked
         
         # Deteksi last sign in & inactive days
         last_sign_in = None
@@ -624,17 +586,9 @@ def api_license_data():
             last_sign_in_str = 'Never'
             inactive_days = 999
         
-        # Deteksi MFA status
-        user_id = user.get("id")
-        mfa_enabled = mfa_status_cache.get(user_id, False)
-        
         # Count inactive licensed users (inactive >90 days, has license, not blocked)
         if inactive_days > 90 and len(license_names) > 0 and not sign_blocked:
             inactive_licensed_count += 1
-        
-        # Count no MFA users (active, not blocked, not guest maybe)
-        if active and not sign_blocked and not mfa_enabled and user.get("userType") != "Guest":
-            no_mfa_count += 1
         
         if sign_blocked:
             blocked_count += 1
@@ -647,10 +601,8 @@ def api_license_data():
             "license_count": len(license_names),
             "licenses": license_names,
             "sign_blocked": sign_blocked,
-            "active": active,
             "last_sign_in": last_sign_in_str if last_sign_in_str != 'Never' else 'Never',
-            "inactive_days": inactive_days if inactive_days < 900 else 999,
-            "mfa_enabled": mfa_enabled
+            "inactive_days": inactive_days if inactive_days < 900 else 999
         })
     
     licensed_count = len([u for u in processed_users if u['license_count'] > 0 and not u['sign_blocked']])
@@ -665,7 +617,6 @@ def api_license_data():
             'unlicensed_users': unlicensed_count,
             'blocked_users': blocked_count,
             'inactive_licensed': inactive_licensed_count,
-            'no_mfa_users': no_mfa_count,
             'coverage': round(licensed_count / len(processed_users) * 100, 1) if processed_users else 0
         }
     })
