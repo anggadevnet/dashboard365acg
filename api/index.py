@@ -15,28 +15,45 @@ REDIRECT_URI = os.getenv("REDIRECT_URI")
 AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
 SCOPES = ["User.Read", "User.Read.All", "Organization.Read.All", "AuditLog.Read.All"]
 
-# Mapping license names to short names
+# Mapping license names - berdasarkan data dari tenant lo
 LICENSE_MAP = {
-    "Office 365 E1": "E1",
-    "Office 365 E3": "E3",
-    "Microsoft 365 E3": "ME3",
-    "Microsoft 365 E5": "ME5",
-    "Office 365 F3": "F3",
-    "Microsoft 365 F3": "MF3",
-    "Exchange Online (Plan 1)": "EXO",
-    "Power BI Pro": "PBI Pro",
-    "Power BI Premium Per User": "PBI Premium",
-    "Visio Plan 2": "Visio",
-    "Planner Plan 1": "Planner",
-    "Planner and Project Plan 3": "Project",
-    "Power Automate Premium": "PA Premium",
-    "Power Apps Premium": "PowerApps",
-    "Microsoft Entra ID P1": "Entra",
-    "Teams Premium (for Departments)": "Teams Premium",
-    "Microsoft 365 Copilot": "Copilot"
+    "STANDARDPACK": "E1",
+    "ENTERPRISEPACK": "E3",
+    "SPE_E3": "ME3",
+    "DESKLESSPACK": "F3",
+    "SPE_F1": "MF3",
+    "POWER_BI_PRO": "PBI Pro",
+    "POWER_BI_STANDARD": "PBI Free",
+    "PBI_PREMIUM_PER_USER": "PBI Premium",
+    "VISIOCLIENT": "Visio",
+    "PROJECTPROFESSIONAL": "Project",
+    "PROJECT_P1": "Project Plan 1",
+    "SPZA_IW": "Office 365 Apps",
+    "AAD_PREMIUM": "Entra P1",
+    "FLOW_FREE": "Power Automate",
+    "POWERAPPS_VIRAL": "Power Apps",
+    "POWERAPPS_PER_USER": "Power Apps Premium",
+    "POWERAPPS_DEV": "Power Apps Dev",
+    "POWERAUTOMATE_ATTENDED_RPA": "Power Automate RPA",
+    "Microsoft_365_Copilot": "Copilot",
+    "Teams_Premium_(for_Departments)": "Teams Premium",
+    "Microsoft_Teams_Exploratory_Dept": "Teams Exploratory",
+    "STREAM": "Stream",
+    "EXCHANGESTANDARD": "Exchange",
+    "PROJECT_PLAN3_DEPT": "Project Plan 3",
+    "VISIO_PLAN2_DEPT": "Visio Plan 2",
+    "Dynamics_365_Customer_Service_Enterprise_viral_trial": "D365 CS Trial",
+    "Dynamics_365_Sales_Premium_Viral_Trial": "D365 Sales Trial",
+    "Dynamics_365_Field_Service_Enterprise_viral_trial": "D365 FS Trial",
+    "DYN365_ENTERPRISE_P1_IW": "D365 P1",
+    "MICROSOFT_BUSINESS_CENTER": "Business Center",
+    "CCIBOTS_PRIVPREV_VIRAL": "Copilot Studio",
+    "Power_Pages_vTrial_for_Makers": "Power Pages Trial",
+    "RIGHTSMANAGEMENT_ADHOC": "RMS Adhoc",
+    "RIGHTSMANAGEMENT": "RMS"
 }
 
-# HTML Dashboard UI Modern
+# HTML Dashboard dengan Billing Page
 DASHBOARD_HTML = '''
 <!DOCTYPE html>
 <html lang="id">
@@ -55,7 +72,7 @@ DASHBOARD_HTML = '''
             min-height: 100vh;
         }
         
-        /* Navbar Modern */
+        /* Navbar */
         .navbar {
             background: rgba(255,255,255,0.95);
             backdrop-filter: blur(10px);
@@ -69,12 +86,12 @@ DASHBOARD_HTML = '''
             position: sticky;
             top: 0;
             z-index: 100;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
         }
         .logo {
             display: flex;
             align-items: center;
             gap: 12px;
+            cursor: pointer;
         }
         .logo-icon {
             width: 40px;
@@ -85,7 +102,6 @@ DASHBOARD_HTML = '''
             align-items: center;
             justify-content: center;
             font-size: 22px;
-            box-shadow: 0 4px 10px rgba(0,120,212,0.3);
         }
         .logo-text {
             font-size: 20px;
@@ -95,10 +111,26 @@ DASHBOARD_HTML = '''
             background-clip: text;
             color: transparent;
         }
-        .logo-sub {
-            font-size: 12px;
-            color: #666;
-            font-weight: 400;
+        .nav-menu {
+            display: flex;
+            gap: 8px;
+            background: #f0f2f5;
+            padding: 4px;
+            border-radius: 40px;
+        }
+        .nav-btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 40px;
+            background: transparent;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .nav-btn.active {
+            background: #0078D4;
+            color: white;
+            box-shadow: 0 2px 8px rgba(0,120,212,0.2);
         }
         .user-info {
             display: flex;
@@ -108,26 +140,13 @@ DASHBOARD_HTML = '''
             padding: 8px 20px;
             border-radius: 40px;
         }
-        .user-avatar {
-            width: 36px;
-            height: 36px;
-            background: linear-gradient(135deg, #0078D4, #00A4EF);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-        }
         .logout-btn {
             background: none;
             border: none;
             color: #dc3545;
             cursor: pointer;
             font-size: 18px;
-            transition: transform 0.2s;
         }
-        .logout-btn:hover { transform: scale(1.1); }
         
         /* Container */
         .container { max-width: 1600px; margin: 0 auto; padding: 24px 32px; }
@@ -145,15 +164,8 @@ DASHBOARD_HTML = '''
             flex-wrap: wrap;
         }
         .welcome-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
-        .welcome-subtitle { opacity: 0.9; font-size: 14px; }
-        .update-badge {
-            background: rgba(255,255,255,0.2);
-            padding: 8px 16px;
-            border-radius: 40px;
-            font-size: 13px;
-        }
         
-        /* Stats Grid Modern */
+        /* Stats Grid */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -169,10 +181,7 @@ DASHBOARD_HTML = '''
             border: 1px solid rgba(0,0,0,0.05);
             box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
-        .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 24px rgba(0,0,0,0.1);
-        }
+        .stat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.1); }
         .stat-icon {
             width: 48px;
             height: 48px;
@@ -185,32 +194,80 @@ DASHBOARD_HTML = '''
         }
         .stat-value { font-size: 32px; font-weight: 800; margin-bottom: 4px; }
         .stat-label { color: #666; font-size: 13px; font-weight: 500; }
-        .stat-trend { font-size: 12px; margin-top: 8px; color: #28a745; }
         
-        /* Charts Grid */
-        .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 24px;
-            margin-bottom: 32px;
-        }
-        .chart-card {
+        /* Billing Table */
+        .billing-table-container {
             background: white;
             border-radius: 24px;
-            padding: 24px;
+            overflow: hidden;
             box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-            border: 1px solid rgba(0,0,0,0.05);
         }
-        .chart-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 20px;
+        .billing-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .billing-title {
+            font-size: 18px;
+            font-weight: 700;
             display: flex;
             align-items: center;
             gap: 8px;
         }
+        .total-cost {
+            background: #e8f4fd;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            color: #0078D4;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        th {
+            text-align: left;
+            padding: 16px 20px;
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+        td {
+            padding: 14px 20px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        tr:hover { background: #fafbfc; }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        .progress-fill.green { background: #28a745; }
+        .progress-fill.yellow { background: #ffc107; }
+        .progress-fill.red { background: #dc3545; }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .badge-warning { background: #f8d7da; color: #dc3545; }
+        .badge-success { background: #d4edda; color: #28a745; }
+        .badge-info { background: #d1ecf1; color: #17a2b8; }
         
-        /* Filter Bar Modern */
+        /* Filter Bar */
         .filter-bar {
             background: white;
             border-radius: 20px;
@@ -220,7 +277,6 @@ DASHBOARD_HTML = '''
             gap: 12px;
             flex-wrap: wrap;
             align-items: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
         .search-box {
             flex: 1;
@@ -229,14 +285,9 @@ DASHBOARD_HTML = '''
             border: 1px solid #e0e0e0;
             border-radius: 40px;
             font-size: 14px;
-            transition: all 0.2s;
             background: #f8f9fa;
         }
-        .search-box:focus {
-            outline: none;
-            border-color: #0078D4;
-            background: white;
-        }
+        .search-box:focus { outline: none; border-color: #0078D4; background: white; }
         .filter-group {
             display: flex;
             gap: 8px;
@@ -251,19 +302,9 @@ DASHBOARD_HTML = '''
             font-size: 13px;
             font-weight: 500;
             transition: all 0.2s;
-            font-family: 'Inter', sans-serif;
         }
-        .filter-btn i { margin-right: 6px; }
-        .filter-btn:hover { background: #e0e0e0; }
-        .filter-btn.active {
-            background: #0078D4;
-            color: white;
-            box-shadow: 0 4px 12px rgba(0,120,212,0.3);
-        }
-        .filter-btn.warning.active {
-            background: #dc3545;
-            box-shadow: 0 4px 12px rgba(220,53,69,0.3);
-        }
+        .filter-btn.active { background: #0078D4; color: white; }
+        .filter-btn.warning.active { background: #dc3545; color: white; }
         .export-btn {
             background: linear-gradient(135deg, #28a745, #20c997);
             color: white;
@@ -272,57 +313,7 @@ DASHBOARD_HTML = '''
             border-radius: 40px;
             cursor: pointer;
             font-weight: 600;
-            transition: all 0.2s;
         }
-        .export-btn:hover { transform: scale(1.02); box-shadow: 0 4px 12px rgba(40,167,69,0.3); }
-        
-        /* Table Modern */
-        .table-container {
-            background: white;
-            border-radius: 24px;
-            padding: 0;
-            overflow: hidden;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-            border: 1px solid rgba(0,0,0,0.05);
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-        th {
-            text-align: left;
-            padding: 16px 20px;
-            background: #f8f9fa;
-            font-weight: 600;
-            color: #333;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        td {
-            padding: 14px 20px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        tr:hover { background: #fafbfc; }
-        
-        /* Badges */
-        .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 500;
-            margin: 2px;
-        }
-        .badge-primary { background: #e3f2fd; color: #0078D4; }
-        .badge-success { background: #d4edda; color: #28a745; }
-        .badge-warning { background: #f8d7da; color: #dc3545; }
-        .badge-info { background: #d1ecf1; color: #17a2b8; }
-        .badge-guest { background: #e9ecef; color: #6c757d; }
-        
-        /* Row highlight */
-        .row-blocked { background: #fff5f5; border-left: 3px solid #dc3545; }
-        .row-inactive { background: #fffbf0; border-left: 3px solid #ffc107; }
-        .row-guest { background: #f8f9fa; opacity: 0.85; }
         
         /* Loading */
         .loading {
@@ -339,31 +330,33 @@ DASHBOARD_HTML = '''
             border-top-color: #0078D4;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
-            margin-bottom: 20px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .hidden { display: none; }
         
         @media (max-width: 768px) {
             .container { padding: 16px; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-            .charts-grid { grid-template-columns: 1fr; }
-            .filter-bar { flex-direction: column; align-items: stretch; }
-            .filter-group { justify-content: center; }
-            th, td { padding: 10px 12px; font-size: 12px; }
+            .filter-bar { flex-direction: column; }
         }
     </style>
 </head>
 <body>
     <div class="navbar">
-        <div class="logo">
+        <div class="logo" onclick="showPage('dashboard')">
             <div class="logo-icon"><i class="fas fa-chart-line"></i></div>
             <div>
                 <div class="logo-text">License Monitor</div>
-                <div class="logo-sub">Lintasarta</div>
+                <div style="font-size: 11px; color: #666;">Lintasarta</div>
             </div>
         </div>
+        <div class="nav-menu">
+            <button class="nav-btn active" id="navDashboard" onclick="showPage('dashboard')"><i class="fas fa-tachometer-alt"></i> Dashboard</button>
+            <button class="nav-btn" id="navBilling" onclick="showPage('billing')"><i class="fas fa-dollar-sign"></i> Billing & Subscriptions</button>
+        </div>
         <div class="user-info">
-            <div class="user-avatar"><i class="fas fa-user"></i></div>
+            <div class="user-avatar" style="width:32px;height:32px;background:#0078D4;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;"><i class="fas fa-user"></i></div>
             <span style="font-weight: 500;">{{ user.name }}</span>
             <a href="/logout" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a>
         </div>
@@ -372,43 +365,29 @@ DASHBOARD_HTML = '''
     <div class="container">
         <div id="loading" class="loading">
             <div class="spinner"></div>
-            <p style="color: #666;">Loading data dari Microsoft 365...</p>
+            <p style="margin-top: 20px; color: #666;">Loading data dari Microsoft 365...</p>
         </div>
         
-        <div id="content" style="display:none;">
-            <!-- Welcome Banner -->
+        <!-- Dashboard Page -->
+        <div id="dashboardPage">
             <div class="welcome-banner">
                 <div>
                     <div class="welcome-title"><i class="fas fa-chart-pie"></i> Dashboard Overview</div>
-                    <div class="welcome-subtitle">Monitoring lisensi dan aktivitas pengguna Microsoft 365</div>
+                    <div style="opacity: 0.9;">Monitoring lisensi dan aktivitas pengguna</div>
                 </div>
-                <div class="update-badge"><i class="fas fa-sync-alt"></i> Auto refresh every 5 min</div>
+                <div class="total-cost"><i class="fas fa-sync-alt"></i> Auto refresh every 5 min</div>
             </div>
             
-            <!-- Stats Cards -->
             <div class="stats-grid" id="statsGrid"></div>
             
-            <!-- Charts -->
-            <div class="charts-grid">
-                <div class="chart-card">
-                    <div class="chart-title"><i class="fas fa-chart-bar" style="color: #0078D4;"></i> Top License Distribution</div>
-                    <canvas id="licenseChart" style="max-height: 300px;"></canvas>
-                </div>
-                <div class="chart-card">
-                    <div class="chart-title"><i class="fas fa-chart-pie" style="color: #28a745;"></i> User Status Overview</div>
-                    <canvas id="statusChart" style="max-height: 300px;"></canvas>
-                </div>
-            </div>
-            
-            <!-- Filter Bar -->
             <div class="filter-bar">
                 <div class="search-box">
-                    <i class="fas fa-search" style="color: #999; margin-right: 8px;"></i>
+                    <i class="fas fa-search" style="color: #999;"></i>
                     <input type="text" id="searchInput" placeholder="Cari nama, email, atau department..." style="border: none; background: transparent; width: 85%; outline: none;">
                 </div>
                 <div class="filter-group">
                     <button id="filterAll" class="filter-btn active"><i class="fas fa-users"></i> All</button>
-                    <button id="filterInternal" class="filter-btn"><i class="fas fa-building"></i> Internal Lintasarta</button>
+                    <button id="filterInternal" class="filter-btn"><i class="fas fa-building"></i> Internal</button>
                     <button id="filterGuest" class="filter-btn"><i class="fas fa-globe"></i> Guest</button>
                     <button id="filterLicensed" class="filter-btn"><i class="fas fa-check-circle"></i> Licensed</button>
                     <button id="filterUnlicensed" class="filter-btn"><i class="fas fa-times-circle"></i> Unlicensed</button>
@@ -418,23 +397,46 @@ DASHBOARD_HTML = '''
                 <button id="exportBtn" class="export-btn"><i class="fas fa-download"></i> Export CSV</button>
             </div>
             
-            <!-- User Table -->
-            <div class="table-container">
+            <div class="billing-table-container">
                 <table id="userTable">
                     <thead>
-                        <tr>
-                            <th><i class="fas fa-user"></i> Name</th>
-                            <th><i class="fas fa-envelope"></i> Email</th>
-                            <th><i class="fas fa-building"></i> Department</th>
-                            <th><i class="fas fa-tag"></i> Type</th>
-                            <th><i class="fas fa-shield-alt"></i> Status</th>
-                            <th><i class="fas fa-calendar-alt"></i> Last Sign In</th>
-                            <th><i class="fas fa-key"></i> Licenses</th>
-                            <th><i class="fas fa-hashtag"></i> Count</th>
-                        </tr>
+                        <tr><th>Name</th><th>Email</th><th>Department</th><th>Type</th><th>Status</th><th>Last Sign In</th><th>Licenses</th><th>Count</th></tr>
                     </thead>
                     <tbody id="tableBody"></tbody>
                 </table>
+            </div>
+        </div>
+        
+        <!-- Billing Page -->
+        <div id="billingPage" class="hidden">
+            <div class="welcome-banner">
+                <div>
+                    <div class="welcome-title"><i class="fas fa-dollar-sign"></i> Billing & Subscriptions</div>
+                    <div style="opacity: 0.9;">License usage and cost monitoring</div>
+                </div>
+                <div class="total-cost" id="totalMonthlyCost">Loading...</div>
+            </div>
+            
+            <div class="billing-table-container">
+                <div class="billing-header">
+                    <div class="billing-title"><i class="fas fa-tags"></i> Active Subscriptions</div>
+                    <div><i class="fas fa-chart-line"></i> Usage vs Available</div>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table id="billingTable">
+                        <thead>
+                            <tr>
+                                <th>License Name</th>
+                                <th>SKU Code</th>
+                                <th>Total</th>
+                                <th>Used</th>
+                                <th>Available</th>
+                                <th>Usage</th>
+                            </tr>
+                        </thead>
+                        <tbody id="billingBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -442,6 +444,7 @@ DASHBOARD_HTML = '''
     <script>
         let allUsers = [];
         let licenseStats = {};
+        let subscriptions = [];
         let currentFilter = 'all';
         
         async function loadData() {
@@ -450,111 +453,75 @@ DASHBOARD_HTML = '''
             if(data.error){ alert('Session expired'); window.location='/logout'; return; }
             allUsers = data.users;
             licenseStats = data.license_stats;
+            subscriptions = data.subscriptions;
             updateStats(data.summary);
-            renderCharts();
+            renderBillingTable();
             renderTable();
             document.getElementById('loading').style.display = 'none';
-            document.getElementById('content').style.display = 'block';
+            document.getElementById('dashboardPage').classList.remove('hidden');
         }
         
         function updateStats(summary) {
-            const colorMap = {
-                internal: { bg: '#e3f2fd', icon: '#0078D4', iconName: 'building' },
-                guest: { bg: '#f8f9fa', icon: '#6c757d', iconName: 'globe' },
-                licensed: { bg: '#d4edda', icon: '#28a745', iconName: 'check-circle' },
-                unlicensed: { bg: '#fff3cd', icon: '#ffc107', iconName: 'times-circle' },
-                blockedE1: { bg: '#f8d7da', icon: '#dc3545', iconName: 'ban' },
-                blockedE3: { bg: '#f8d7da', icon: '#dc3545', iconName: 'ban' }
-            };
-            
             document.getElementById('statsGrid').innerHTML = `
                 <div class="stat-card" onclick="setFilter('internal')">
-                    <div class="stat-icon" style="background: ${colorMap.internal.bg}"><i class="fas fa-building" style="color: ${colorMap.internal.icon}"></i></div>
+                    <div class="stat-icon" style="background:#e3f2fd"><i class="fas fa-building" style="color:#0078D4"></i></div>
                     <div class="stat-value">${summary.internal_users}</div>
-                    <div class="stat-label">Internal Lintasarta</div>
+                    <div class="stat-label">Internal Users</div>
                 </div>
                 <div class="stat-card" onclick="setFilter('guest')">
-                    <div class="stat-icon" style="background: ${colorMap.guest.bg}"><i class="fas fa-globe" style="color: ${colorMap.guest.icon}"></i></div>
+                    <div class="stat-icon" style="background:#f8f9fa"><i class="fas fa-globe" style="color:#6c757d"></i></div>
                     <div class="stat-value">${summary.guest_users}</div>
                     <div class="stat-label">Guest Users</div>
                 </div>
                 <div class="stat-card" onclick="setFilter('licensed')">
-                    <div class="stat-icon" style="background: ${colorMap.licensed.bg}"><i class="fas fa-check-circle" style="color: ${colorMap.licensed.icon}"></i></div>
+                    <div class="stat-icon" style="background:#d4edda"><i class="fas fa-check-circle" style="color:#28a745"></i></div>
                     <div class="stat-value">${summary.licensed_users}</div>
                     <div class="stat-label">Licensed</div>
                 </div>
                 <div class="stat-card" onclick="setFilter('unlicensed')">
-                    <div class="stat-icon" style="background: ${colorMap.unlicensed.bg}"><i class="fas fa-times-circle" style="color: ${colorMap.unlicensed.icon}"></i></div>
+                    <div class="stat-icon" style="background:#fff3cd"><i class="fas fa-times-circle" style="color:#ffc107"></i></div>
                     <div class="stat-value">${summary.unlicensed_users}</div>
                     <div class="stat-label">Unlicensed</div>
                 </div>
                 <div class="stat-card" onclick="setFilter('blocked_e1')">
-                    <div class="stat-icon" style="background: ${colorMap.blockedE1.bg}"><i class="fas fa-ban" style="color: ${colorMap.blockedE1.icon}"></i></div>
+                    <div class="stat-icon" style="background:#f8d7da"><i class="fas fa-ban" style="color:#dc3545"></i></div>
                     <div class="stat-value">${summary.blocked_e1}</div>
                     <div class="stat-label">Blocked + E1</div>
                 </div>
                 <div class="stat-card" onclick="setFilter('blocked_e3')">
-                    <div class="stat-icon" style="background: ${colorMap.blockedE3.bg}"><i class="fas fa-ban" style="color: ${colorMap.blockedE3.icon}"></i></div>
+                    <div class="stat-icon" style="background:#f8d7da"><i class="fas fa-ban" style="color:#dc3545"></i></div>
                     <div class="stat-value">${summary.blocked_e3}</div>
                     <div class="stat-label">Blocked + E3</div>
                 </div>
             `;
         }
         
-        function setFilter(filter) {
-            currentFilter = filter;
-            const btns = ['filterAll', 'filterInternal', 'filterGuest', 'filterLicensed', 'filterUnlicensed', 'filterBlockedE1', 'filterBlockedE3'];
-            const mapping = {
-                'filterAll':'all', 'filterInternal':'internal', 'filterGuest':'guest',
-                'filterLicensed':'licensed', 'filterUnlicensed':'unlicensed',
-                'filterBlockedE1':'blocked_e1', 'filterBlockedE3':'blocked_e3'
-            };
-            btns.forEach(btnId => {
-                const btn = document.getElementById(btnId);
-                if (mapping[btnId] === filter) btn.classList.add('active');
-                else btn.classList.remove('active');
-            });
-            renderTable();
-        }
-        
-        function renderCharts() {
-            const labels = Object.keys(licenseStats).slice(0, 8);
-            const values = Object.values(licenseStats).slice(0, 8);
-            new Chart(document.getElementById('licenseChart'), {
-                type: 'bar',
-                data: { labels, datasets: [{ label: 'Users', data: values, backgroundColor: '#0078D4', borderRadius: 8 }] },
-                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
-            });
+        function renderBillingTable() {
+            const tbody = document.getElementById('billingBody');
+            tbody.innerHTML = '';
+            let total = 0;
             
-            const internal = allUsers.filter(u => !u.is_guest && !u.sign_blocked).length;
-            const guest = allUsers.filter(u => u.is_guest && !u.sign_blocked).length;
-            const blocked = allUsers.filter(u => u.sign_blocked).length;
-            new Chart(document.getElementById('statusChart'), {
-                type: 'doughnut',
-                data: { labels: ['Internal', 'Guest', 'Blocked'], datasets: [{ data: [internal, guest, blocked], backgroundColor: ['#0078D4', '#6c757d', '#dc3545'] }] },
-                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            subscriptions.forEach(sub => {
+                const row = tbody.insertRow();
+                const usagePercent = (sub.consumed / sub.enabled) * 100;
+                let progressClass = 'green';
+                if (usagePercent > 90) progressClass = 'red';
+                else if (usagePercent > 70) progressClass = 'yellow';
+                
+                row.insertCell(0).innerHTML = `<strong>${sub.displayName}</strong>`;
+                row.insertCell(1).innerHTML = `<span class="badge badge-info">${sub.skuId}</span>`;
+                row.insertCell(2).innerHTML = `<strong>${sub.enabled.toLocaleString()}</strong>`;
+                row.insertCell(3).innerHTML = `${sub.consumed.toLocaleString()}`;
+                row.insertCell(4).innerHTML = `<strong style="color:#28a745">${sub.available.toLocaleString()}</strong>`;
+                row.insertCell(5).innerHTML = `
+                    <div class="progress-bar">
+                        <div class="progress-fill ${progressClass}" style="width: ${usagePercent}%"></div>
+                    </div>
+                    <span style="font-size: 11px; margin-top: 4px; display: block;">${usagePercent.toFixed(1)}% used</span>
+                `;
+                total += sub.enabled;
             });
-        }
-        
-        function getFilteredUsers() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            let filtered = allUsers;
-            
-            if (currentFilter === 'internal') filtered = allUsers.filter(u => !u.is_guest);
-            else if (currentFilter === 'guest') filtered = allUsers.filter(u => u.is_guest);
-            else if (currentFilter === 'licensed') filtered = allUsers.filter(u => u.license_count > 0 && !u.sign_blocked && !u.is_guest);
-            else if (currentFilter === 'unlicensed') filtered = allUsers.filter(u => u.license_count === 0 && !u.sign_blocked && !u.is_guest);
-            else if (currentFilter === 'blocked_e1') filtered = allUsers.filter(u => u.sign_blocked && u.has_e1);
-            else if (currentFilter === 'blocked_e3') filtered = allUsers.filter(u => u.sign_blocked && u.has_e3);
-            
-            if (searchTerm) {
-                filtered = filtered.filter(u => 
-                    u.name.toLowerCase().includes(searchTerm) || 
-                    u.email.toLowerCase().includes(searchTerm) ||
-                    (u.department && u.department.toLowerCase().includes(searchTerm))
-                );
-            }
-            return filtered;
+            document.getElementById('totalMonthlyCost').innerHTML = `<i class="fas fa-chart-line"></i> Total: ${subscriptions.length} SKU Active`;
         }
         
         function renderTable() {
@@ -564,36 +531,65 @@ DASHBOARD_HTML = '''
             
             filtered.forEach(user => {
                 const row = tbody.insertRow();
-                let rowClass = '';
-                if (user.sign_blocked) rowClass = 'row-blocked';
-                else if (user.inactive_days > 90 && user.license_count > 0) rowClass = 'row-inactive';
-                else if (user.is_guest) rowClass = 'row-guest';
-                if (rowClass) row.className = rowClass;
-                
                 row.insertCell(0).innerHTML = `<strong>${user.name}</strong>`;
-                row.insertCell(1).innerHTML = `<a href="mailto:${user.email}" style="color: #0078D4; text-decoration: none;">${user.email}</a>`;
+                row.insertCell(1).innerHTML = `<a href="mailto:${user.email}" style="color:#0078D4;">${user.email}</a>`;
                 row.insertCell(2).innerHTML = user.department || '—';
-                
-                let typeHtml = user.is_guest ? '<span class="badge badge-guest"><i class="fas fa-globe"></i> Guest</span>' : '<span class="badge badge-primary"><i class="fas fa-building"></i> Internal</span>';
+                let typeHtml = user.is_guest ? '<span class="badge badge-info">Guest</span>' : '<span class="badge badge-success">Internal</span>';
                 row.insertCell(3).innerHTML = typeHtml;
-                
-                let statusHtml = '';
-                if (user.sign_blocked) statusHtml = '<span class="badge badge-warning"><i class="fas fa-ban"></i> Blocked</span>';
-                else if (user.inactive_days > 90) statusHtml = `<span class="badge badge-info"><i class="fas fa-clock"></i> Inactive ${user.inactive_days}d</span>`;
-                else statusHtml = '<span class="badge badge-success"><i class="fas fa-check-circle"></i> Active</span>';
+                let statusHtml = user.sign_blocked ? '<span class="badge badge-warning">Blocked</span>' : '<span class="badge badge-success">Active</span>';
                 row.insertCell(4).innerHTML = statusHtml;
-                
-                row.insertCell(5).innerHTML = user.last_sign_in || '<span class="badge badge-guest">Never</span>';
-                row.insertCell(6).innerHTML = user.licenses.map(l => `<span class="badge badge-primary">${l}</span>`).join(' ') || '<span class="badge badge-warning">No License</span>';
-                row.insertCell(7).innerHTML = `<span style="font-weight: 600;">${user.license_count}</span>`;
+                row.insertCell(5).innerHTML = user.last_sign_in || 'Never';
+                row.insertCell(6).innerHTML = user.licenses.map(l => `<span class="badge" style="background:#e3f2fd;color:#0078D4;">${l}</span>`).join(' ') || '<span class="badge badge-warning">No License</span>';
+                row.insertCell(7).innerHTML = `<strong>${user.license_count}</strong>`;
             });
+        }
+        
+        function getFilteredUsers() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            let filtered = allUsers;
+            if (currentFilter === 'internal') filtered = allUsers.filter(u => !u.is_guest);
+            else if (currentFilter === 'guest') filtered = allUsers.filter(u => u.is_guest);
+            else if (currentFilter === 'licensed') filtered = allUsers.filter(u => u.license_count > 0 && !u.sign_blocked && !u.is_guest);
+            else if (currentFilter === 'unlicensed') filtered = allUsers.filter(u => u.license_count === 0 && !u.sign_blocked && !u.is_guest);
+            else if (currentFilter === 'blocked_e1') filtered = allUsers.filter(u => u.sign_blocked && u.has_e1);
+            else if (currentFilter === 'blocked_e3') filtered = allUsers.filter(u => u.sign_blocked && u.has_e3);
+            if (searchTerm) {
+                filtered = filtered.filter(u => u.name.toLowerCase().includes(searchTerm) || u.email.toLowerCase().includes(searchTerm));
+            }
+            return filtered;
+        }
+        
+        function setFilter(filter) {
+            currentFilter = filter;
+            const btns = ['filterAll', 'filterInternal', 'filterGuest', 'filterLicensed', 'filterUnlicensed', 'filterBlockedE1', 'filterBlockedE3'];
+            const mapping = {'filterAll':'all','filterInternal':'internal','filterGuest':'guest','filterLicensed':'licensed','filterUnlicensed':'unlicensed','filterBlockedE1':'blocked_e1','filterBlockedE3':'blocked_e3'};
+            btns.forEach(btnId => {
+                const btn = document.getElementById(btnId);
+                if (mapping[btnId] === filter) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+            renderTable();
+        }
+        
+        function showPage(page) {
+            if (page === 'dashboard') {
+                document.getElementById('dashboardPage').classList.remove('hidden');
+                document.getElementById('billingPage').classList.add('hidden');
+                document.getElementById('navDashboard').classList.add('active');
+                document.getElementById('navBilling').classList.remove('active');
+            } else {
+                document.getElementById('dashboardPage').classList.add('hidden');
+                document.getElementById('billingPage').classList.remove('hidden');
+                document.getElementById('navDashboard').classList.remove('active');
+                document.getElementById('navBilling').classList.add('active');
+            }
         }
         
         function exportCSV() {
             const filtered = getFilteredUsers();
-            let csv = "Name,Email,Department,User Type,Sign Status,Last Sign In,Inactive Days,Licenses,License Count\\n";
+            let csv = "Name,Email,Department,User Type,Status,Last Sign In,Licenses,Count\\n";
             filtered.forEach(u => {
-                csv += `"${u.name}","${u.email}","${u.department || ''}","${u.is_guest ? 'Guest' : 'Internal'}","${u.sign_blocked ? 'Blocked' : (u.inactive_days > 90 ? 'Inactive' : 'Active')}","${u.last_sign_in || 'Never'}","${u.inactive_days || '-'}","${u.licenses.join('; ')}",${u.license_count}\\n`;
+                csv += `"${u.name}","${u.email}","${u.department || ''}","${u.is_guest ? 'Guest' : 'Internal'}","${u.sign_blocked ? 'Blocked' : 'Active'}","${u.last_sign_in || 'Never'}","${u.licenses.join('; ')}",${u.license_count}\\n`;
             });
             const blob = new Blob([csv], {type:'text/csv'});
             const a = document.createElement('a');
@@ -646,11 +642,6 @@ LOGIN_HTML = '''
             width: 90%;
             text-align: center;
             box-shadow: 0 25px 50px rgba(0,0,0,0.2);
-            animation: fadeInUp 0.5s ease;
-        }
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
         }
         .logo-icon {
             width: 70px;
@@ -662,9 +653,8 @@ LOGIN_HTML = '''
             justify-content: center;
             margin: 0 auto 20px;
             font-size: 32px;
-            box-shadow: 0 10px 20px rgba(0,120,212,0.3);
         }
-        h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; color: #1a1a2e; }
+        h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
         .subtitle { color: #666; margin-bottom: 32px; font-size: 14px; }
         .features {
             text-align: left;
@@ -676,50 +666,34 @@ LOGIN_HTML = '''
         .features li {
             list-style: none;
             margin: 12px 0;
-            color: #333;
             font-size: 14px;
         }
-        .features i {
-            width: 24px;
-            color: #0078D4;
-            margin-right: 12px;
-        }
+        .features i { width: 24px; color: #0078D4; margin-right: 12px; }
         .btn-login {
             background: linear-gradient(135deg, #0078D4, #00A4EF);
             color: white;
-            border: none;
             padding: 14px 32px;
             border-radius: 40px;
             font-size: 16px;
             font-weight: 600;
-            cursor: pointer;
+            text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            transition: all 0.3s;
-            text-decoration: none;
         }
-        .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0,120,212,0.3);
-        }
-        .footer {
-            margin-top: 32px;
-            font-size: 11px;
-            color: #999;
-        }
+        .footer { margin-top: 32px; font-size: 11px; color: #999; }
     </style>
 </head>
 <body>
     <div class="login-card">
         <div class="logo-icon"><i class="fas fa-chart-line" style="color: white;"></i></div>
         <h1>License Monitor</h1>
-        <p class="subtitle">Microsoft 365 License & Activity Monitoring</p>
+        <p class="subtitle">Microsoft 365 License & Billing Monitoring</p>
         <div class="features">
-            <li><i class="fas fa-check-circle"></i> Internal & Guest users</li>
+            <li><i class="fas fa-building"></i> Internal & Guest users</li>
             <li><i class="fas fa-tag"></i> License: E1, E3, ME3, F3</li>
-            <li><i class="fas fa-ban"></i> Blocked users by license type</li>
-            <li><i class="fas fa-clock"></i> Inactive >90 days tracking</li>
+            <li><i class="fas fa-dollar-sign"></i> Billing & Subscription tracking</li>
+            <li><i class="fas fa-ban"></i> Blocked users by license</li>
             <li><i class="fas fa-download"></i> Export to CSV</li>
         </div>
         <a href="/login" class="btn-login"><i class="fas fa-microsoft"></i> Login with Microsoft 365</a>
@@ -801,18 +775,32 @@ def api_license_data():
         else:
             break
     
-    # Ambil SKU license
+    # Ambil SKU license untuk billing
     skus_response = requests.get("https://graph.microsoft.com/v1.0/subscribedSkus", headers=headers)
     skus = skus_response.json().get("value", []) if skus_response.status_code == 200 else []
     sku_map = {}
+    subscriptions = []
+    
     for sku in skus:
         sku_id = sku.get("skuId")
         sku_name = sku.get("skuPartNumber", "Unknown")
-        # Map to short name
         short_name = LICENSE_MAP.get(sku_name, sku_name)
         sku_map[sku_id] = short_name
+        
+        prepaid = sku.get("prepaidUnits", {})
+        enabled = prepaid.get("enabled", 0)
+        consumed = sku.get("consumedUnits", 0)
+        
+        if enabled > 0:
+            subscriptions.append({
+                "skuId": sku_name,
+                "displayName": short_name,
+                "enabled": enabled,
+                "consumed": consumed,
+                "available": enabled - consumed
+            })
     
-    # Proses data
+    # Proses data user
     processed_users = []
     license_stats = {}
     today = datetime.now()
@@ -821,7 +809,6 @@ def api_license_data():
         email = user.get("userPrincipalName", "")
         is_guest = "#EXT#" in email or user.get("userType") == "Guest"
         
-        # License
         licenses = user.get("assignedLicenses", [])
         license_names = []
         has_e1 = False
@@ -840,20 +827,15 @@ def api_license_data():
         
         sign_blocked = user.get("accountEnabled") == False
         
-        # Last sign in
         last_sign_in_str = 'Never'
-        inactive_days = None
         sign_in_activity = user.get("signInActivity", {})
         last_sign_in_date = sign_in_activity.get("lastSignInDateTime")
-        
         if last_sign_in_date:
             try:
                 last_sign_in = datetime.fromisoformat(last_sign_in_date.replace('Z', '+00:00'))
-                inactive_days = (today - last_sign_in).days
                 last_sign_in_str = last_sign_in.strftime('%Y-%m-%d')
             except:
                 last_sign_in_str = last_sign_in_date[:10] if last_sign_in_date else 'Never'
-                inactive_days = None
         
         processed_users.append({
             "name": user.get("displayName", "N/A"),
@@ -865,15 +847,11 @@ def api_license_data():
             "sign_blocked": sign_blocked,
             "has_e1": has_e1,
             "has_e3": has_e3,
-            "last_sign_in": last_sign_in_str,
-            "inactive_days": inactive_days if inactive_days else None
+            "last_sign_in": last_sign_in_str
         })
     
-    # Pisahkan internal dan guest
     internal_users = [u for u in processed_users if not u['is_guest']]
     guest_users = [u for u in processed_users if u['is_guest']]
-    
-    # Statistik
     licensed_active = len([u for u in internal_users if u['license_count'] > 0 and not u['sign_blocked']])
     unlicensed_active = len([u for u in internal_users if u['license_count'] == 0 and not u['sign_blocked']])
     blocked_e1 = len([u for u in processed_users if u['sign_blocked'] and u['has_e1']])
@@ -882,6 +860,7 @@ def api_license_data():
     return jsonify({
         'users': processed_users,
         'license_stats': dict(sorted(license_stats.items(), key=lambda x: x[1], reverse=True)),
+        'subscriptions': subscriptions,
         'summary': {
             'total_users': len(processed_users),
             'internal_users': len(internal_users),
