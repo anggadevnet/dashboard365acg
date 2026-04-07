@@ -38,7 +38,7 @@ LICENSE_MAP = {
     "EXCHANGESTANDARD": "Exchange"
 }
 
-# HTML Dashboard dengan Toggle
+# HTML Dashboard - Full 1 Layar
 DASHBOARD_HTML = '''
 <!DOCTYPE html>
 <html lang="id">
@@ -46,7 +46,6 @@ DASHBOARD_HTML = '''
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>M365 License Monitor | Lintasarta</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -57,45 +56,40 @@ DASHBOARD_HTML = '''
             min-height: 100vh;
         }
         
-        /* Layout dengan Toggle */
-        .app-wrapper {
+        /* Layout Utama - Full 1 Layar */
+        .app {
             display: flex;
             min-height: 100vh;
         }
         
-        /* SIDEBAR - Bisa toggle */
+        /* SIDEBAR - Compact */
         .sidebar {
-            width: 280px;
+            width: 260px;
             background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
             color: white;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s;
             position: fixed;
             height: 100vh;
-            z-index: 1000;
+            z-index: 100;
             overflow-y: auto;
-            box-shadow: 4px 0 20px rgba(0,0,0,0.1);
         }
         .sidebar.collapsed {
             width: 70px;
         }
         .sidebar.collapsed .sidebar-text,
-        .sidebar.collapsed .sidebar-label,
-        .sidebar.collapsed .stat-small {
+        .sidebar.collapsed .sidebar-label {
             display: none;
-        }
-        .sidebar.collapsed .sidebar-icon {
-            margin-right: 0;
         }
         .sidebar.collapsed .sidebar-item {
             justify-content: center;
-            padding: 12px;
+            padding: 14px;
         }
         
         /* Main Content */
         .main-content {
             flex: 1;
-            margin-left: 280px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-left: 260px;
+            transition: all 0.3s;
             min-height: 100vh;
         }
         .main-content.expanded {
@@ -105,9 +99,9 @@ DASHBOARD_HTML = '''
         /* Toggle Button */
         .toggle-btn {
             position: fixed;
-            left: 280px;
-            top: 20px;
-            z-index: 1001;
+            left: 260px;
+            top: 16px;
+            z-index: 101;
             background: #0078D4;
             color: white;
             border: none;
@@ -115,7 +109,6 @@ DASHBOARD_HTML = '''
             height: 32px;
             border-radius: 8px;
             cursor: pointer;
-            transition: all 0.3s;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -124,14 +117,10 @@ DASHBOARD_HTML = '''
         .toggle-btn.collapsed {
             left: 70px;
         }
-        .toggle-btn:hover {
-            background: #005a9e;
-            transform: scale(1.05);
-        }
         
         /* Sidebar Content */
         .sidebar-header {
-            padding: 24px 20px;
+            padding: 20px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
             margin-bottom: 20px;
         }
@@ -150,18 +139,10 @@ DASHBOARD_HTML = '''
             justify-content: center;
             font-size: 20px;
         }
-        .sidebar-logo-text {
-            font-weight: 700;
-            font-size: 18px;
-        }
-        .sidebar-logo-sub {
-            font-size: 11px;
-            opacity: 0.7;
-        }
+        .sidebar-logo-text { font-weight: 700; font-size: 16px; }
+        .sidebar-logo-sub { font-size: 10px; opacity: 0.7; }
         
-        .sidebar-nav {
-            padding: 0 16px;
-        }
+        .sidebar-nav { padding: 0 16px; }
         .sidebar-item {
             display: flex;
             align-items: center;
@@ -173,75 +154,48 @@ DASHBOARD_HTML = '''
             transition: all 0.2s;
             color: rgba(255,255,255,0.8);
         }
-        .sidebar-item:hover {
-            background: rgba(255,255,255,0.1);
-            color: white;
-        }
-        .sidebar-item.active {
-            background: #0078D4;
-            color: white;
-        }
-        .sidebar-icon {
-            width: 24px;
-            font-size: 18px;
-            text-align: center;
-        }
-        .sidebar-text {
-            font-size: 14px;
-            font-weight: 500;
-        }
+        .sidebar-item:hover { background: rgba(255,255,255,0.1); color: white; }
+        .sidebar-item.active { background: #0078D4; color: white; }
+        .sidebar-icon { width: 24px; font-size: 18px; }
+        .sidebar-text { font-size: 14px; font-weight: 500; }
         
         .sidebar-divider {
             height: 1px;
             background: rgba(255,255,255,0.1);
-            margin: 20px 16px;
+            margin: 16px;
         }
         
-        .sidebar-stats {
-            padding: 0 16px;
-            margin-top: 20px;
-        }
+        .sidebar-stats { padding: 0 16px; margin-top: 20px; }
         .stat-item {
             background: rgba(255,255,255,0.05);
             border-radius: 12px;
             padding: 12px;
             margin-bottom: 8px;
         }
-        .stat-label-small {
-            font-size: 11px;
-            opacity: 0.7;
-            margin-bottom: 4px;
-        }
-        .stat-value-small {
-            font-size: 20px;
-            font-weight: 700;
-        }
+        .stat-label-small { font-size: 11px; opacity: 0.7; margin-bottom: 4px; }
+        .stat-value-small { font-size: 18px; font-weight: 700; }
         
-        /* Navbar Main */
-        .main-navbar {
+        /* Navbar */
+        .top-navbar {
             background: white;
-            padding: 16px 24px;
+            padding: 12px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 16px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            gap: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
             position: sticky;
             top: 0;
             z-index: 99;
         }
-        .page-title {
-            font-size: 20px;
-            font-weight: 700;
-            color: #1a1a2e;
-        }
+        .page-title { font-size: 18px; font-weight: 700; color: #1a1a2e; }
         .user-info {
             display: flex;
             align-items: center;
             gap: 16px;
             background: #f8f9fa;
-            padding: 8px 20px;
+            padding: 6px 16px;
             border-radius: 40px;
         }
         .logout-btn {
@@ -249,85 +203,69 @@ DASHBOARD_HTML = '''
             border: none;
             color: #dc3545;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 14px;
         }
         
-        /* Container */
+        /* Container - Padding dikurangi biar 1 layar penuh */
         .container {
-            padding: 24px;
+            padding: 20px 24px;
             max-width: 100%;
-            overflow-x: auto;
         }
         
-        /* Stats Grid */
+        /* Stats Grid - 6 card dalam 1 baris di desktop */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 16px;
             margin-bottom: 24px;
         }
         .stat-card {
             background: white;
-            border-radius: 20px;
-            padding: 20px;
+            border-radius: 16px;
+            padding: 16px;
             cursor: pointer;
             transition: all 0.2s;
-            border: 1px solid rgba(0,0,0,0.05);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            border: 1px solid #eef2f6;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
         }
         .stat-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-color: transparent;
         }
         .stat-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 16px;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
-            margin-bottom: 16px;
+            font-size: 20px;
+            margin-bottom: 12px;
         }
-        .stat-value { font-size: 32px; font-weight: 800; margin-bottom: 4px; }
-        .stat-label { color: #666; font-size: 13px; font-weight: 500; }
+        .stat-value { font-size: 28px; font-weight: 800; margin-bottom: 4px; }
+        .stat-label { color: #666; font-size: 12px; font-weight: 500; }
         
-        /* Charts */
-        .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 20px;
-            margin-bottom: 24px;
-        }
-        .chart-card {
-            background: white;
-            border-radius: 20px;
-            padding: 20px;
-        }
-        .chart-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 16px;
-        }
-        
-        /* Filter Bar */
+        /* Filter Bar - Compact */
         .filter-bar {
             background: white;
-            border-radius: 20px;
-            padding: 16px 20px;
+            border-radius: 16px;
+            padding: 12px 20px;
             margin-bottom: 20px;
             display: flex;
             gap: 12px;
             flex-wrap: wrap;
             align-items: center;
+            border: 1px solid #eef2f6;
         }
         .search-box {
             flex: 1;
-            min-width: 250px;
-            padding: 10px 16px;
+            min-width: 240px;
+            padding: 8px 16px;
             border: 1px solid #e0e0e0;
             border-radius: 40px;
-            background: #f8f9fa;
+            background: #fafbfc;
+            font-size: 13px;
         }
         .search-box input {
             border: none;
@@ -337,93 +275,120 @@ DASHBOARD_HTML = '''
         }
         .filter-group {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             flex-wrap: wrap;
         }
         .filter-btn {
-            padding: 8px 16px;
+            padding: 6px 14px;
             border: none;
             border-radius: 40px;
             cursor: pointer;
             background: #f0f2f5;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
+            transition: all 0.2s;
         }
         .filter-btn.active { background: #0078D4; color: white; }
         .filter-btn.warning.active { background: #dc3545; color: white; }
         .export-btn {
             background: linear-gradient(135deg, #28a745, #20c997);
             color: white;
-            padding: 8px 20px;
+            padding: 6px 18px;
             border: none;
             border-radius: 40px;
             cursor: pointer;
             font-weight: 600;
+            font-size: 12px;
         }
         
-        /* Table */
-        .table-container {
+        /* Billing Section - Compact */
+        .billing-section {
             background: white;
-            border-radius: 20px;
-            overflow-x: auto;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            border-radius: 16px;
+            margin-bottom: 20px;
+            border: 1px solid #eef2f6;
+            overflow: hidden;
         }
+        .billing-header {
+            padding: 14px 20px;
+            background: #fafbfc;
+            border-bottom: 1px solid #eef2f6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .billing-title {
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .billing-table-container {
+            overflow-x: auto;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        /* User Table Section */
+        .user-section {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #eef2f6;
+            overflow: hidden;
+        }
+        .user-header {
+            padding: 14px 20px;
+            background: #fafbfc;
+            border-bottom: 1px solid #eef2f6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* Tables */
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
-            min-width: 800px;
+            font-size: 12px;
         }
         th {
-            padding: 14px 16px;
+            padding: 12px 16px;
             text-align: left;
             background: #f8f9fa;
             font-weight: 600;
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid #eef2f6;
+            position: sticky;
+            top: 0;
         }
         td {
-            padding: 12px 16px;
+            padding: 10px 16px;
             border-bottom: 1px solid #f0f0f0;
         }
         tr:hover { background: #fafbfc; }
         
         .badge {
             display: inline-block;
-            padding: 4px 12px;
+            padding: 3px 10px;
             border-radius: 20px;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 500;
-            margin: 2px;
+            margin: 1px;
         }
         .badge-primary { background: #e3f2fd; color: #0078D4; }
         .badge-success { background: #d4edda; color: #28a745; }
         .badge-warning { background: #f8d7da; color: #dc3545; }
         .badge-info { background: #d1ecf1; color: #17a2b8; }
         
-        /* Billing Table */
-        .billing-table-container {
-            background: white;
-            border-radius: 20px;
-            overflow-x: auto;
-        }
-        .billing-header {
-            padding: 20px;
-            border-bottom: 1px solid #e0e0e0;
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-        }
         .progress-bar {
-            width: 100px;
-            height: 6px;
+            width: 80px;
+            height: 4px;
             background: #e0e0e0;
-            border-radius: 3px;
+            border-radius: 2px;
             overflow: hidden;
         }
-        .progress-fill {
-            height: 100%;
-            border-radius: 3px;
-        }
+        .progress-fill { height: 100%; border-radius: 2px; }
         .progress-fill.green { background: #28a745; }
         .progress-fill.yellow { background: #ffc107; }
         .progress-fill.red { background: #dc3545; }
@@ -433,12 +398,12 @@ DASHBOARD_HTML = '''
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 80px;
+            padding: 60px;
         }
         .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #e0e0e0;
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e0e0e0;
             border-top-color: #0078D4;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
@@ -447,19 +412,27 @@ DASHBOARD_HTML = '''
         
         .hidden { display: none; }
         
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+        
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .stats-grid { grid-template-columns: repeat(3, 1fr); }
+        }
         @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .sidebar { transform: translateX(-100%); }
             .sidebar.mobile-open { transform: translateX(0); }
             .main-content { margin-left: 0 !important; }
-            .toggle-btn { left: 20px; }
-            .toggle-btn.collapsed { left: 20px; }
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
-            .charts-grid { grid-template-columns: 1fr; }
+            .toggle-btn { left: 16px; }
+            .container { padding: 16px; }
         }
     </style>
 </head>
 <body>
-<div class="app-wrapper">
+<div class="app">
     <!-- Toggle Button -->
     <button class="toggle-btn" id="toggleBtn" onclick="toggleSidebar()">
         <i class="fas fa-bars"></i>
@@ -484,7 +457,7 @@ DASHBOARD_HTML = '''
             </div>
             <div class="sidebar-item" id="navBillingBtn" onclick="showPage('billing')">
                 <div class="sidebar-icon"><i class="fas fa-dollar-sign"></i></div>
-                <div class="sidebar-text">Billing & Subscriptions</div>
+                <div class="sidebar-text">Billing</div>
             </div>
         </div>
         
@@ -512,11 +485,11 @@ DASHBOARD_HTML = '''
     
     <!-- Main Content -->
     <div class="main-content" id="mainContent">
-        <div class="main-navbar">
+        <div class="top-navbar">
             <div class="page-title" id="pageTitle"><i class="fas fa-chart-pie"></i> Dashboard</div>
             <div class="user-info">
-                <i class="fas fa-user-circle" style="font-size: 20px; color: #0078D4;"></i>
-                <span>{{ user.name }}</span>
+                <i class="fas fa-user-circle" style="font-size: 18px; color: #0078D4;"></i>
+                <span style="font-size: 13px;">{{ user.name }}</span>
                 <a href="/logout" class="logout-btn"><i class="fas fa-sign-out-alt"></i></a>
             </div>
         </div>
@@ -524,28 +497,19 @@ DASHBOARD_HTML = '''
         <div class="container">
             <div id="loading" class="loading">
                 <div class="spinner"></div>
-                <p>Loading data dari Microsoft 365...</p>
+                <p style="margin-top: 16px; font-size: 13px;">Loading data dari Microsoft 365...</p>
             </div>
             
             <!-- Dashboard Page -->
             <div id="dashboardPage">
+                <!-- Stats Cards - 6 items -->
                 <div class="stats-grid" id="statsGrid"></div>
                 
-                <div class="charts-grid">
-                    <div class="chart-card">
-                        <div class="chart-title"><i class="fas fa-chart-bar"></i> Top License Distribution</div>
-                        <canvas id="licenseChart" style="max-height: 280px;"></canvas>
-                    </div>
-                    <div class="chart-card">
-                        <div class="chart-title"><i class="fas fa-chart-pie"></i> User Status Overview</div>
-                        <canvas id="statusChart" style="max-height: 280px;"></canvas>
-                    </div>
-                </div>
-                
+                <!-- Filter Bar -->
                 <div class="filter-bar">
                     <div class="search-box">
                         <i class="fas fa-search"></i>
-                        <input type="text" id="searchInput" placeholder="Cari nama, email, atau department...">
+                        <input type="text" id="searchInput" placeholder="Cari nama, email...">
                     </div>
                     <div class="filter-group">
                         <button id="filterAll" class="filter-btn active">All</button>
@@ -553,32 +517,39 @@ DASHBOARD_HTML = '''
                         <button id="filterGuest" class="filter-btn">Guest</button>
                         <button id="filterLicensed" class="filter-btn">Licensed</button>
                         <button id="filterUnlicensed" class="filter-btn">Unlicensed</button>
-                        <button id="filterBlockedE1" class="filter-btn warning">Blocked + E1</button>
-                        <button id="filterBlockedE3" class="filter-btn warning">Blocked + E3</button>
+                        <button id="filterBlockedE1" class="filter-btn warning">Blocked+E1</button>
+                        <button id="filterBlockedE3" class="filter-btn warning">Blocked+E3</button>
                     </div>
                     <button id="exportBtn" class="export-btn"><i class="fas fa-download"></i> Export</button>
                 </div>
                 
-                <div class="table-container">
-                    <table id="userTable">
-                        <thead>
-                            <tr><th>Name</th><th>Email</th><th>Department</th><th>Type</th><th>Status</th><th>Last Sign In</th><th>Licenses</th><th>Count</th></tr>
-                        </thead>
-                        <tbody id="tableBody"></tbody>
-                    </table>
+                <!-- User Table -->
+                <div class="user-section">
+                    <div class="user-header">
+                        <div><i class="fas fa-users"></i> <strong>User List</strong></div>
+                        <div><span id="rowCount">0</span> users</div>
+                    </div>
+                    <div style="overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                        <table id="userTable">
+                            <thead>
+                                <tr><th>Name</th><th>Email</th><th>Dept</th><th>Type</th><th>Status</th><th>Last Sign In</th><th>Licenses</th><th>Count</th></tr>
+                            </thead>
+                            <tbody id="tableBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
             
             <!-- Billing Page -->
             <div id="billingPage" class="hidden">
-                <div class="billing-table-container">
+                <div class="billing-section">
                     <div class="billing-header">
-                        <div><i class="fas fa-tags"></i> <strong>Active Subscriptions</strong></div>
+                        <div class="billing-title"><i class="fas fa-tags"></i> Active Subscriptions</div>
                         <div id="totalSKU"></div>
                     </div>
-                    <div style="overflow-x: auto;">
+                    <div class="billing-table-container" style="max-height: 500px;">
                         <table id="billingTable">
-                            <thead><tr><th>License Name</th><th>SKU Code</th><th>Total</th><th>Used</th><th>Available</th><th>Usage</th></tr></thead>
+                            <thead><tr><th>License</th><th>SKU</th><th>Total</th><th>Used</th><th>Available</th><th>Usage</th></tr></thead>
                             <tbody id="billingBody"></tbody>
                         </table>
                     </div>
@@ -594,25 +565,18 @@ DASHBOARD_HTML = '''
     let subscriptions = [];
     let currentFilter = 'all';
     
-    // Toggle Sidebar
     function toggleSidebar() {
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
         const toggleBtn = document.getElementById('toggleBtn');
-        
         sidebar.classList.toggle('collapsed');
         mainContent.classList.toggle('expanded');
         toggleBtn.classList.toggle('collapsed');
-        
-        // Simpan state ke localStorage
-        const isCollapsed = sidebar.classList.contains('collapsed');
-        localStorage.setItem('sidebarCollapsed', isCollapsed);
+        localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
     }
     
-    // Load saved sidebar state
     function loadSidebarState() {
-        const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-        if (isCollapsed) {
+        if (localStorage.getItem('sidebarCollapsed') === 'true') {
             document.getElementById('sidebar').classList.add('collapsed');
             document.getElementById('mainContent').classList.add('expanded');
             document.getElementById('toggleBtn').classList.add('collapsed');
@@ -629,7 +593,6 @@ DASHBOARD_HTML = '''
         updateStats(data.summary);
         updateSidebarStats(data.summary);
         renderBillingTable();
-        renderCharts();
         renderTable();
         document.getElementById('loading').style.display = 'none';
         document.getElementById('dashboardPage').classList.remove('hidden');
@@ -646,11 +609,11 @@ DASHBOARD_HTML = '''
         document.getElementById('statsGrid').innerHTML = `
             <div class="stat-card" onclick="setFilter('internal')">
                 <div class="stat-icon" style="background:#e3f2fd"><i class="fas fa-building" style="color:#0078D4"></i></div>
-                <div class="stat-value">${summary.internal_users}</div><div class="stat-label">Internal Users</div>
+                <div class="stat-value">${summary.internal_users}</div><div class="stat-label">Internal</div>
             </div>
             <div class="stat-card" onclick="setFilter('guest')">
                 <div class="stat-icon" style="background:#f8f9fa"><i class="fas fa-globe" style="color:#6c757d"></i></div>
-                <div class="stat-value">${summary.guest_users}</div><div class="stat-label">Guest Users</div>
+                <div class="stat-value">${summary.guest_users}</div><div class="stat-label">Guest</div>
             </div>
             <div class="stat-card" onclick="setFilter('licensed')">
                 <div class="stat-icon" style="background:#d4edda"><i class="fas fa-check-circle" style="color:#28a745"></i></div>
@@ -662,32 +625,13 @@ DASHBOARD_HTML = '''
             </div>
             <div class="stat-card" onclick="setFilter('blocked_e1')">
                 <div class="stat-icon" style="background:#f8d7da"><i class="fas fa-ban" style="color:#dc3545"></i></div>
-                <div class="stat-value">${summary.blocked_e1}</div><div class="stat-label">Blocked + E1</div>
+                <div class="stat-value">${summary.blocked_e1}</div><div class="stat-label">Blocked+E1</div>
             </div>
             <div class="stat-card" onclick="setFilter('blocked_e3')">
                 <div class="stat-icon" style="background:#f8d7da"><i class="fas fa-ban" style="color:#dc3545"></i></div>
-                <div class="stat-value">${summary.blocked_e3}</div><div class="stat-label">Blocked + E3</div>
+                <div class="stat-value">${summary.blocked_e3}</div><div class="stat-label">Blocked+E3</div>
             </div>
         `;
-    }
-    
-    function renderCharts() {
-        const labels = Object.keys(licenseStats).slice(0, 8);
-        const values = Object.values(licenseStats).slice(0, 8);
-        new Chart(document.getElementById('licenseChart'), {
-            type: 'bar',
-            data: { labels, datasets: [{ label: 'Users', data: values, backgroundColor: '#0078D4', borderRadius: 8 }] },
-            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
-        });
-        
-        const internal = allUsers.filter(u => !u.is_guest && !u.sign_blocked).length;
-        const guest = allUsers.filter(u => u.is_guest && !u.sign_blocked).length;
-        const blocked = allUsers.filter(u => u.sign_blocked).length;
-        new Chart(document.getElementById('statusChart'), {
-            type: 'doughnut',
-            data: { labels: ['Internal', 'Guest', 'Blocked'], datasets: [{ data: [internal, guest, blocked], backgroundColor: ['#0078D4', '#6c757d', '#dc3545'] }] },
-            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-        });
     }
     
     function renderBillingTable() {
@@ -700,28 +644,29 @@ DASHBOARD_HTML = '''
             if (usagePercent > 90) progressClass = 'red';
             else if (usagePercent > 70) progressClass = 'yellow';
             row.insertCell(0).innerHTML = `<strong>${sub.displayName}</strong>`;
-            row.insertCell(1).innerHTML = `<span class="badge badge-info">${sub.skuId}</span>`;
+            row.insertCell(1).innerHTML = `<span class="badge badge-info">${sub.skuId.substring(0, 20)}</span>`;
             row.insertCell(2).innerHTML = sub.enabled.toLocaleString();
             row.insertCell(3).innerHTML = sub.consumed.toLocaleString();
             row.insertCell(4).innerHTML = `<strong style="color:#28a745">${sub.available.toLocaleString()}</strong>`;
-            row.insertCell(5).innerHTML = `<div class="progress-bar"><div class="progress-fill ${progressClass}" style="width: ${usagePercent}%"></div></div><span style="font-size:10px;">${usagePercent.toFixed(1)}%</span>`;
+            row.insertCell(5).innerHTML = `<div class="progress-bar"><div class="progress-fill ${progressClass}" style="width: ${usagePercent}%"></div></div><span style="font-size: 10px;">${usagePercent.toFixed(0)}%</span>`;
         });
-        document.getElementById('totalSKU').innerHTML = `<i class="fas fa-chart-line"></i> Total: ${subscriptions.length} SKU Active`;
+        document.getElementById('totalSKU').innerHTML = `<i class="fas fa-chart-line"></i> ${subscriptions.length} SKU Active`;
     }
     
     function renderTable() {
         const filtered = getFilteredUsers();
         const tbody = document.getElementById('tableBody');
         tbody.innerHTML = '';
+        document.getElementById('rowCount').innerHTML = filtered.length;
         filtered.forEach(user => {
             const row = tbody.insertRow();
             row.insertCell(0).innerHTML = `<strong>${user.name}</strong>`;
-            row.insertCell(1).innerHTML = `<a href="mailto:${user.email}" style="color:#0078D4;">${user.email}</a>`;
+            row.insertCell(1).innerHTML = `<a href="mailto:${user.email}" style="color:#0078D4; text-decoration:none;">${user.email}</a>`;
             row.insertCell(2).innerHTML = user.department || '—';
             row.insertCell(3).innerHTML = user.is_guest ? '<span class="badge badge-info">Guest</span>' : '<span class="badge badge-primary">Internal</span>';
             row.insertCell(4).innerHTML = user.sign_blocked ? '<span class="badge badge-warning">Blocked</span>' : '<span class="badge badge-success">Active</span>';
             row.insertCell(5).innerHTML = user.last_sign_in || 'Never';
-            row.insertCell(6).innerHTML = user.licenses.map(l => `<span class="badge badge-primary">${l}</span>`).join(' ') || '<span class="badge badge-warning">No License</span>';
+            row.insertCell(6).innerHTML = user.licenses.map(l => `<span class="badge badge-primary">${l}</span>`).join(' ') || '<span class="badge badge-warning">-</span>';
             row.insertCell(7).innerHTML = `<strong>${user.license_count}</strong>`;
         });
     }
@@ -761,7 +706,7 @@ DASHBOARD_HTML = '''
         } else {
             document.getElementById('dashboardPage').classList.add('hidden');
             document.getElementById('billingPage').classList.remove('hidden');
-            document.getElementById('pageTitle').innerHTML = '<i class="fas fa-dollar-sign"></i> Billing & Subscriptions';
+            document.getElementById('pageTitle').innerHTML = '<i class="fas fa-dollar-sign"></i> Billing';
             document.getElementById('navDashboardBtn').classList.remove('active');
             document.getElementById('navBillingBtn').classList.add('active');
         }
@@ -769,7 +714,7 @@ DASHBOARD_HTML = '''
     
     function exportCSV() {
         const filtered = getFilteredUsers();
-        let csv = "Name,Email,Department,User Type,Status,Last Sign In,Licenses,Count\\n";
+        let csv = "Name,Email,Department,Type,Status,Last Sign In,Licenses,Count\\n";
         filtered.forEach(u => {
             csv += `"${u.name}","${u.email}","${u.department || ''}","${u.is_guest ? 'Guest' : 'Internal'}","${u.sign_blocked ? 'Blocked' : 'Active'}","${u.last_sign_in || 'Never'}","${u.licenses.join('; ')}",${u.license_count}\\n`;
         });
@@ -819,67 +764,67 @@ LOGIN_HTML = '''
         }
         .login-card {
             background: white;
-            border-radius: 32px;
-            padding: 48px;
-            max-width: 500px;
+            border-radius: 28px;
+            padding: 40px;
+            max-width: 480px;
             width: 90%;
             text-align: center;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
         }
         .logo-icon {
-            width: 70px;
-            height: 70px;
+            width: 64px;
+            height: 64px;
             background: linear-gradient(135deg, #0078D4, #00A4EF);
-            border-radius: 20px;
+            border-radius: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto 20px;
-            font-size: 32px;
+            font-size: 28px;
         }
-        h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
-        .subtitle { color: #666; margin-bottom: 32px; font-size: 14px; }
+        h1 { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+        .subtitle { color: #666; margin-bottom: 28px; font-size: 13px; }
         .features {
             text-align: left;
-            margin: 32px 0;
+            margin: 28px 0;
             background: #f8f9fa;
-            padding: 20px 24px;
-            border-radius: 20px;
+            padding: 18px 22px;
+            border-radius: 18px;
         }
         .features li {
             list-style: none;
-            margin: 12px 0;
-            font-size: 14px;
+            margin: 10px 0;
+            font-size: 13px;
         }
-        .features i { width: 24px; color: #0078D4; margin-right: 12px; }
+        .features i { width: 22px; color: #0078D4; margin-right: 10px; }
         .btn-login {
             background: linear-gradient(135deg, #0078D4, #00A4EF);
             color: white;
-            padding: 14px 32px;
+            padding: 12px 28px;
             border-radius: 40px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 10px;
         }
-        .footer { margin-top: 32px; font-size: 11px; color: #999; }
+        .footer { margin-top: 28px; font-size: 10px; color: #999; }
     </style>
 </head>
 <body>
     <div class="login-card">
         <div class="logo-icon"><i class="fas fa-chart-line" style="color: white;"></i></div>
         <h1>License Monitor</h1>
-        <p class="subtitle">Microsoft 365 License & Billing Monitoring</p>
+        <p class="subtitle">Microsoft 365 License & Billing</p>
         <div class="features">
             <li><i class="fas fa-building"></i> Internal & Guest users</li>
-            <li><i class="fas fa-tag"></i> License: E1, E3, ME3, F3</li>
-            <li><i class="fas fa-dollar-sign"></i> Billing & Subscription tracking</li>
+            <li><i class="fas fa-tag"></i> E1, E3, ME3 license tracking</li>
+            <li><i class="fas fa-dollar-sign"></i> Billing & subscriptions</li>
             <li><i class="fas fa-ban"></i> Blocked users by license</li>
             <li><i class="fas fa-download"></i> Export to CSV</li>
         </div>
-        <a href="/login" class="btn-login"><i class="fas fa-microsoft"></i> Login with Microsoft 365</a>
+        <a href="/login" class="btn-login"><i class="fab fa-microsoft"></i> Login</a>
         <div class="footer">Powered by Lintasarta</div>
     </div>
 </body>
