@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f0f2f5; }
+        .navbar {
+            background: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo { font-size: 24px; font-weight: bold; color: #0078D4; }
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 30px; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        .stat-value { font-size: 48px; font-weight: bold; color: #0078D4; }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            overflow-x: auto;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #f8f9fa; }
+        .search-box { padding: 10px; width: 300px; margin-bottom: 20px; }
+        .export-btn {
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .loading { text-align: center; padding: 50px; }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #0078D4;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .badge {
+            background: #0078D4;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            display: inline-block;
+            margin: 2px;
+        }
+        .expand-btn {
+            background: #6c757d;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .expand-content { display: none; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="logo">📊 M365 License Monitor</div>
+        <div>
+            <span id="userName"></span>
+            <a href="/logout" class="logout-btn">Logout</a>
+        </div>
+    </div>
+    <div class="container">
+        <div id="loading" class="loading"><div class="spinner"></div><p>Loading...</p></div>
+        <div id="content" style="display:none;">
+            <div class="stats-grid">
+                <div class="stat-card"><div>Total Users</div><div class="stat-value" id="total">-</div></div>
+                <div class="stat-card"><div>Licensed</div><div class="stat-value" id="licensed">-</div></div>
+                <div class="stat-card"><div>Unlicensed</div><div class="stat-value" id="unlicensed">-</div></div>
+                <div class="stat-card"><div>Coverage</div><div class="stat-value" id="coverage">-</div></div>
+            </div>
+            <div class="charts-grid">
+                <div class="chart-card"><h3>License Distribution</h3><canvas id="licenseChart"></canvas></div>
+                <div class="chart-card"><h3>License Status</h3><canvas id="statusChart"></canvas></div>
+            </div>
+            <div class="table-container">
+                <h3>Licensed Users</h3>
+                <input type="text" id="search" class="search-box" placeholder="Search...">
+                <button class="export-btn" onclick="exportCSV()">Download CSV</button>
+                <table id="userTable"><thead><tr><th>Name</th><th>Email</th><th>Department</th><th>Licenses</th><th>Count</th></tr></thead><tbody id="tableBody"></tbody></table>
+            </div>
+            <button class="expand-btn" onclick="toggleUnlicensed()">Show Unlicensed Users ▼</button>
+            <div id="unlicensedContent" class="expand-content"><div class="table-container"><table><thead><tr><th>Name</th><th>Email</th><th>Department</th></tr></thead><tbody id="unlicensedBody"></tbody></table></div></div>
+        </div>
+    </div>
+    <script>
+        let licensedUsers = [], unlicensedUsers = [], licenseStats = {};
+        async function loadData() {
+            const res = await fetch('/api/license-data');
+            const data = await res.json();
+            if(data.error){ alert('Session expired'); window.location='/logout'; return; }
+            document.getElementById('total').innerText = data.total_users;
+            document.getElementById('licensed').innerText = data.licensed_users;
+            document.getElementById('unlicensed').innerText = data.unlicensed_users;
+            document.getElementById('coverage').innerHTML = data.license_coverage+'%';
+            licensedUsers = data.licensed_users_list;
+            unlicensedUsers = data.unlicensed_users_list;
+            licenseStats = data.license_stats;
+            renderCharts();
+            renderTable(licensedUsers);
+            renderUnlicensed(unlicensedUsers);
+            document.getElementById('loading').style.display='none';
+            document.getElementById('content').style.display='block';
+        }
+        function renderCharts(){
+            new Chart(document.getElementById('licenseChart'), { type:'bar', data:{ labels:Object.keys(licenseStats).slice(0,5), datasets:[{ label:'Users', data:Object.values(licenseStats).slice(0,5), backgroundColor:'#0078D4' }] } });
+            new Chart(document.getElementById('statusChart'), { type:'doughnut', data:{ labels:['Licensed','Unlicensed'], datasets:[{ data:[licensedUsers.length, unlicensedUsers.length], backgroundColor:['#28a745','#dc3545'] }] } });
+        }
+        function renderTable(users){
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            users.forEach(u => {
+                const row = tbody.insertRow();
+                row.insertCell(0).innerText = u.name;
+                row.insertCell(1).innerText = u.email;
+                row.insertCell(2).innerText = u.department;
+                row.insertCell(3).innerHTML = u.licenses.map(l => `<span class="badge">${l}</span>`).join(' ');
+                row.insertCell(4).innerText = u.license_count;
+            });
+        }
+        function renderUnlicensed(users){
+            const tbody = document.getElementById('unlicensedBody');
+            tbody.innerHTML = '';
+            users.forEach(u => {
+                const row = tbody.insertRow();
+                row.insertCell(0).innerText = u.name;
+                row.insertCell(1).innerText = u.email;
+                row.insertCell(2).innerText = u.department;
+            });
+        }
+        document.getElementById('search').addEventListener('keyup', function(){
+            const val = this.value.toLowerCase();
+            const filtered = licensedUsers.filter(u => u.name.toLowerCase().includes(val) || u.email.toLowerCase().includes(val));
+            renderTable(filtered);
+        });
+        function exportCSV(){
+            let csv = "Name,Email,Department,Licenses\n";
+            licensedUsers.forEach(u => csv += `"${u.name}","${u.email}","${u.department}","${u.licenses.join(';')}"\n`);
+            const blob = new Blob([csv], {type:'text/csv'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `license_report_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+        function toggleUnlicensed(){
+            const content = document.getElementById('unlicensedContent');
+            content.style.display = content.style.display === 'none' ? 'block' : 'none';
+        }
+        document.getElementById('userName').innerText = '👋 {{ user.name }}';
+        loadData();
+        setInterval(loadData, 300000);
+    </script>
+</body>
+</html>
