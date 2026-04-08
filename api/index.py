@@ -13,7 +13,7 @@ TENANT_ID = os.getenv("TENANT_ID")
 REDIRECT_URI = os.getenv("REDIRECT_URI")
 
 AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
-SCOPES = ["User.Read", "User.Read.All", "Organization.Read.All", "AuditLog.Read.All"]
+SCOPES = ["User.Read", "User.Read.All", "Organization.Read.All", "AuditLog.Read.All", "Group.Read.All"]
 
 # Mapping license names
 LICENSE_MAP = {
@@ -38,7 +38,7 @@ LICENSE_MAP = {
     "EXCHANGESTANDARD": "Exchange"
 }
 
-# HTML Dashboard - Full 1 Layar, Tanpa Sidebar
+# HTML Dashboard dengan Groups Page
 DASHBOARD_HTML = '''
 <!DOCTYPE html>
 <html lang="id">
@@ -75,6 +75,7 @@ DASHBOARD_HTML = '''
             display: flex;
             align-items: center;
             gap: 12px;
+            cursor: pointer;
         }
         .logo-icon {
             width: 42px;
@@ -189,7 +190,7 @@ DASHBOARD_HTML = '''
             font-weight: 500;
         }
         
-        /* Stats Grid - 6 Cards in a row */
+        /* Stats Grid */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
@@ -322,6 +323,122 @@ DASHBOARD_HTML = '''
             box-shadow: 0 6px 14px rgba(40,167,69,0.3);
         }
         
+        /* Groups Layout */
+        .groups-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        .groups-list {
+            background: white;
+            border-radius: 24px;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.04);
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .groups-header {
+            padding: 16px 20px;
+            background: #fafbfc;
+            border-bottom: 1px solid #eef2f6;
+            font-weight: 700;
+            position: sticky;
+            top: 0;
+        }
+        .group-item {
+            padding: 14px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .group-item:hover {
+            background: #f8f9ff;
+        }
+        .group-item.active {
+            background: linear-gradient(90deg, #e3f2fd, transparent);
+            border-left: 3px solid #0078D4;
+        }
+        .group-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .group-member-count {
+            font-size: 12px;
+            color: #666;
+            background: #f0f2f5;
+            padding: 2px 10px;
+            border-radius: 20px;
+        }
+        .group-search {
+            padding: 12px 16px;
+            border-bottom: 1px solid #eef2f6;
+        }
+        .group-search input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 30px;
+            font-size: 12px;
+        }
+        
+        .members-panel {
+            background: white;
+            border-radius: 24px;
+            border: 1px solid rgba(0,0,0,0.04);
+            overflow: hidden;
+            max-height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+        .members-header {
+            padding: 16px 20px;
+            background: #fafbfc;
+            border-bottom: 1px solid #eef2f6;
+            font-weight: 700;
+        }
+        .members-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+        .member-item {
+            padding: 12px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .member-avatar {
+            width: 32px;
+            height: 32px;
+            background: #e3f2fd;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0078D4;
+        }
+        .member-info {
+            flex: 1;
+        }
+        .member-name {
+            font-weight: 600;
+            font-size: 13px;
+        }
+        .member-email {
+            font-size: 11px;
+            color: #666;
+        }
+        .loading-members {
+            padding: 40px;
+            text-align: center;
+            color: #666;
+        }
+        
         /* Billing Section */
         .billing-section {
             background: white;
@@ -444,7 +561,8 @@ DASHBOARD_HTML = '''
         .hidden { display: none; }
         
         /* Responsive */
-        @media (max-width: 1300px) {
+        @media (max-width: 1000px) {
+            .groups-layout { grid-template-columns: 1fr; }
             .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; }
         }
         @media (max-width: 768px) {
@@ -459,7 +577,7 @@ DASHBOARD_HTML = '''
 <body>
     <!-- Top Navbar -->
     <div class="navbar">
-        <div class="logo">
+        <div class="logo" onclick="showPage('dashboard')">
             <div class="logo-icon"><i class="fas fa-chart-line"></i></div>
             <div>
                 <div class="logo-text">LicMonitor</div>
@@ -469,6 +587,7 @@ DASHBOARD_HTML = '''
         
         <div class="tab-nav">
             <button class="tab-btn active" id="tabDashboard" onclick="showPage('dashboard')"><i class="fas fa-tachometer-alt"></i> Dashboard</button>
+            <button class="tab-btn" id="tabGroups" onclick="showPage('groups')"><i class="fas fa-users"></i> Groups</button>
             <button class="tab-btn" id="tabBilling" onclick="showPage('billing')"><i class="fas fa-dollar-sign"></i> Billing</button>
         </div>
         
@@ -522,19 +641,44 @@ DASHBOARD_HTML = '''
                 <div style="overflow-x: auto; max-height: 450px; overflow-y: auto;">
                     <table id="userTable">
                         <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Dept</th>
-                                <th>Type</th>
-                                <th>Status</th>
-                                <th>Last Sign In</th>
-                                <th>Licenses</th>
-                                <th>Count</th>
-                            </tr>
+                            <tr><th>Name</th><th>Email</th><th>Dept</th><th>Type</th><th>Status</th><th>Last Sign In</th><th>Licenses</th><th>Count</th></tr>
                         </thead>
                         <tbody id="tableBody"></tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Groups Page -->
+        <div id="groupsPage" class="hidden">
+            <div class="welcome-banner">
+                <div>
+                    <div class="welcome-title"><i class="fas fa-users"></i> Distribution Groups</div>
+                    <div style="opacity: 0.9; font-size: 14px;">View group members and manage distribution lists</div>
+                </div>
+                <div class="update-badge"><i class="fas fa-sync-alt"></i> Click group to view members</div>
+            </div>
+            
+            <div class="groups-layout">
+                <!-- Groups List -->
+                <div class="groups-list">
+                    <div class="groups-header"><i class="fas fa-list"></i> All Groups</div>
+                    <div class="group-search">
+                        <input type="text" id="groupSearchInput" placeholder="🔍 Search group...">
+                    </div>
+                    <div id="groupsListContainer">
+                        <div style="padding: 20px; text-align: center; color: #666;">Loading groups...</div>
+                    </div>
+                </div>
+                
+                <!-- Members Panel -->
+                <div class="members-panel">
+                    <div class="members-header" id="selectedGroupTitle">
+                        <i class="fas fa-users"></i> Select a group to view members
+                    </div>
+                    <div class="members-list" id="membersListContainer">
+                        <div class="loading-members">👈 Click on a group to see its members</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -557,14 +701,7 @@ DASHBOARD_HTML = '''
                 <div class="billing-table-container" style="max-height: 550px;">
                     <table id="billingTable">
                         <thead>
-                            <tr>
-                                <th>License Name</th>
-                                <th>SKU Code</th>
-                                <th>Total</th>
-                                <th>Used</th>
-                                <th>Available</th>
-                                <th>Usage</th>
-                            </tr>
+                            <tr><th>License Name</th><th>SKU Code</th><th>Total</th><th>Used</th><th>Available</th><th>Usage</th></tr>
                         </thead>
                         <tbody id="billingBody"></tbody>
                     </table>
@@ -578,6 +715,8 @@ DASHBOARD_HTML = '''
         let licenseStats = {};
         let subscriptions = [];
         let currentFilter = 'all';
+        let allGroups = [];
+        let selectedGroupId = null;
         
         async function loadData() {
             const res = await fetch('/api/license-data');
@@ -591,6 +730,84 @@ DASHBOARD_HTML = '''
             renderTable();
             document.getElementById('loading').style.display = 'none';
             document.getElementById('dashboardPage').classList.remove('hidden');
+            
+            // Load groups di background
+            loadGroups();
+        }
+        
+        async function loadGroups() {
+            const res = await fetch('/api/groups');
+            const data = await res.json();
+            if(data.error) return;
+            allGroups = data.groups;
+            renderGroupsList();
+        }
+        
+        async function loadGroupMembers(groupId, groupName) {
+            document.getElementById('selectedGroupTitle').innerHTML = `<i class="fas fa-users"></i> ${groupName} - Members`;
+            document.getElementById('membersListContainer').innerHTML = '<div class="loading-members"><div class="spinner" style="width:30px;height:30px;"></div><p>Loading members...</p></div>';
+            
+            const res = await fetch(`/api/groups/${groupId}/members`);
+            const data = await res.json();
+            if(data.error) {
+                document.getElementById('membersListContainer').innerHTML = `<div class="loading-members">❌ Error loading members</div>`;
+                return;
+            }
+            
+            renderMembersList(data.members);
+        }
+        
+        function renderGroupsList() {
+            const container = document.getElementById('groupsListContainer');
+            const searchTerm = document.getElementById('groupSearchInput').value.toLowerCase();
+            
+            let filtered = allGroups;
+            if (searchTerm) {
+                filtered = allGroups.filter(g => g.displayName.toLowerCase().includes(searchTerm));
+            }
+            
+            if (filtered.length === 0) {
+                container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No groups found</div>';
+                return;
+            }
+            
+            container.innerHTML = filtered.map(group => `
+                <div class="group-item ${selectedGroupId === group.id ? 'active' : ''}" onclick="selectGroup('${group.id}', '${group.displayName.replace(/'/g, "\\'")}')">
+                    <div class="group-name"><i class="fas fa-envelope"></i> ${escapeHtml(group.displayName)}</div>
+                    <div class="group-member-count">👥 ${group.memberCount || 0}</div>
+                </div>
+            `).join('');
+        }
+        
+        function renderMembersList(members) {
+            if (members.length === 0) {
+                document.getElementById('membersListContainer').innerHTML = '<div class="loading-members">📭 No members in this group</div>';
+                return;
+            }
+            
+            document.getElementById('membersListContainer').innerHTML = members.map(member => `
+                <div class="member-item">
+                    <div class="member-avatar"><i class="fas fa-user"></i></div>
+                    <div class="member-info">
+                        <div class="member-name">${escapeHtml(member.displayName || member.userPrincipalName || 'Unknown')}</div>
+                        <div class="member-email">${escapeHtml(member.userPrincipalName || member.mail || 'No email')}</div>
+                    </div>
+                    <div><span class="badge badge-primary">${member.userType === 'Guest' ? 'Guest' : 'Member'}</span></div>
+                </div>
+            `).join('');
+        }
+        
+        function selectGroup(groupId, groupName) {
+            selectedGroupId = groupId;
+            renderGroupsList();
+            loadGroupMembers(groupId, groupName);
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
         
         function updateStats(summary) {
@@ -693,13 +910,24 @@ DASHBOARD_HTML = '''
         function showPage(page) {
             if (page === 'dashboard') {
                 document.getElementById('dashboardPage').classList.remove('hidden');
+                document.getElementById('groupsPage').classList.add('hidden');
                 document.getElementById('billingPage').classList.add('hidden');
                 document.getElementById('tabDashboard').classList.add('active');
+                document.getElementById('tabGroups').classList.remove('active');
+                document.getElementById('tabBilling').classList.remove('active');
+            } else if (page === 'groups') {
+                document.getElementById('dashboardPage').classList.add('hidden');
+                document.getElementById('groupsPage').classList.remove('hidden');
+                document.getElementById('billingPage').classList.add('hidden');
+                document.getElementById('tabDashboard').classList.remove('active');
+                document.getElementById('tabGroups').classList.add('active');
                 document.getElementById('tabBilling').classList.remove('active');
             } else {
                 document.getElementById('dashboardPage').classList.add('hidden');
+                document.getElementById('groupsPage').classList.add('hidden');
                 document.getElementById('billingPage').classList.remove('hidden');
                 document.getElementById('tabDashboard').classList.remove('active');
+                document.getElementById('tabGroups').classList.remove('active');
                 document.getElementById('tabBilling').classList.add('active');
             }
         }
@@ -718,6 +946,7 @@ DASHBOARD_HTML = '''
         }
         
         document.getElementById('searchInput').addEventListener('keyup', renderTable);
+        document.getElementById('groupSearchInput').addEventListener('keyup', () => renderGroupsList());
         document.getElementById('filterAll').onclick = () => setFilter('all');
         document.getElementById('filterInternal').onclick = () => setFilter('internal');
         document.getElementById('filterGuest').onclick = () => setFilter('guest');
@@ -826,6 +1055,7 @@ LOGIN_HTML = '''
         <div class="features">
             <li><i class="fas fa-building"></i> Internal & Guest Users</li>
             <li><i class="fas fa-tag"></i> E1, E3, ME3 License Tracking</li>
+            <li><i class="fas fa-users"></i> Distribution Group Management</li>
             <li><i class="fas fa-dollar-sign"></i> Real-time Billing Overview</li>
             <li><i class="fas fa-ban"></i> Blocked Users by License Type</li>
             <li><i class="fas fa-download"></i> Export Reports to CSV</li>
@@ -888,6 +1118,66 @@ def dashboard():
     if 'user' not in session:
         return redirect('/')
     return render_template_string(DASHBOARD_HTML, user=session['user'])
+
+@app.route('/api/groups')
+def api_groups():
+    token = session.get('access_token')
+    if not token:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    # Ambil semua distribution groups dan mail-enabled security groups
+    groups = []
+    url = "https://graph.microsoft.com/v1.0/groups?$filter=mailEnabled eq true or groupTypes/any(c:c eq 'Unified')&$select=id,displayName,mail,groupTypes&$top=999"
+    
+    while url:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            for group in data.get("value", []):
+                # Hitung jumlah member (API terpisah, kita estimasi dulu)
+                groups.append({
+                    "id": group.get("id"),
+                    "displayName": group.get("displayName", "N/A"),
+                    "mail": group.get("mail", ""),
+                    "groupType": "Unified" if "Unified" in group.get("groupTypes", []) else "Distribution",
+                    "memberCount": 0  # Akan diupdate pas load members
+                })
+            url = data.get("@odata.nextLink")
+        else:
+            break
+    
+    return jsonify({'groups': groups})
+
+@app.route('/api/groups/<group_id>/members')
+def api_group_members(group_id):
+    token = session.get('access_token')
+    if not token:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    members = []
+    url = f"https://graph.microsoft.com/v1.0/groups/{group_id}/members?$select=id,displayName,userPrincipalName,mail,userType&$top=999"
+    
+    while url:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            for member in data.get("value", []):
+                members.append({
+                    "id": member.get("id"),
+                    "displayName": member.get("displayName", "N/A"),
+                    "userPrincipalName": member.get("userPrincipalName", ""),
+                    "mail": member.get("mail", ""),
+                    "userType": member.get("userType", "Member")
+                })
+            url = data.get("@odata.nextLink")
+        else:
+            break
+    
+    return jsonify({'members': members, 'count': len(members)})
 
 @app.route('/api/license-data')
 def api_license_data():
