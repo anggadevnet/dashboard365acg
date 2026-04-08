@@ -13,7 +13,7 @@ TENANT_ID = os.getenv("TENANT_ID")
 REDIRECT_URI = os.getenv("REDIRECT_URI")
 
 AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
-SCOPES = ["User.Read", "User.Read.All", "Organization.Read.All", "AuditLog.Read.All", "Group.Read.All"]
+SCOPES = ["User.Read", "User.Read.All", "Organization.Read.All", "AuditLog.Read.All", "Group.Read.All", "GroupMember.Read.All"]
 
 # Mapping license names
 LICENSE_MAP = {
@@ -38,7 +38,7 @@ LICENSE_MAP = {
     "EXCHANGESTANDARD": "Exchange"
 }
 
-# HTML Dashboard dengan Groups Page
+# HTML Dashboard dengan Groups Page (sudah diperbaiki)
 DASHBOARD_HTML = '''
 <!DOCTYPE html>
 <html lang="id">
@@ -730,31 +730,32 @@ DASHBOARD_HTML = '''
             renderTable();
             document.getElementById('loading').style.display = 'none';
             document.getElementById('dashboardPage').classList.remove('hidden');
-            
-            // Load groups di background
-            loadGroups();
         }
         
+        // ============ PERBAIKAN: FUNGSI GROUPS YANG SUDAH DIPERBAIKI ============
         async function loadGroups() {
-            const res = await fetch('/api/groups');
-            const data = await res.json();
-            if(data.error) return;
-            allGroups = data.groups;
-            renderGroupsList();
-        }
-        
-        async function loadGroupMembers(groupId, groupName) {
-            document.getElementById('selectedGroupTitle').innerHTML = `<i class="fas fa-users"></i> ${groupName} - Members`;
-            document.getElementById('membersListContainer').innerHTML = '<div class="loading-members"><div class="spinner" style="width:30px;height:30px;"></div><p>Loading members...</p></div>';
+            const container = document.getElementById('groupsListContainer');
+            container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;"><div class="spinner" style="width:30px;height:30px;margin:0 auto 12px;"></div><p>Loading groups...</p></div>';
             
-            const res = await fetch(`/api/groups/${groupId}/members`);
-            const data = await res.json();
-            if(data.error) {
-                document.getElementById('membersListContainer').innerHTML = `<div class="loading-members">❌ Error loading members</div>`;
-                return;
+            try {
+                const res = await fetch('/api/groups');
+                const data = await res.json();
+                if(data.error) {
+                    container.innerHTML = '<div style="padding: 20px; text-align: center; color: red;">❌ Failed to load groups</div>';
+                    return;
+                }
+                allGroups = data.groups || [];
+                renderGroupsList();
+                
+                // LANGSUNG PILIH GRUP PERTAMA OTOMATIS
+                if (allGroups.length > 0 && !selectedGroupId) {
+                    const firstGroup = allGroups[0];
+                    selectGroup(firstGroup.id, firstGroup.displayName);
+                }
+            } catch(e) {
+                console.error(e);
+                container.innerHTML = '<div style="padding: 20px; text-align: center; color: red;">❌ Network error</div>';
             }
-            
-            renderMembersList(data.members);
         }
         
         function renderGroupsList() {
@@ -767,20 +768,40 @@ DASHBOARD_HTML = '''
             }
             
             if (filtered.length === 0) {
-                container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">No groups found</div>';
+                container.innerHTML = '<div style="padding: 40px; text-align: center; color: #999;"><i class="fas fa-folder-open"></i><p style="margin-top: 8px;">No groups found</p></div>';
                 return;
             }
             
             container.innerHTML = filtered.map(group => `
-                <div class="group-item ${selectedGroupId === group.id ? 'active' : ''}" onclick="selectGroup('${group.id}', '${group.displayName.replace(/'/g, "\\'")}')">
+                <div class="group-item ${selectedGroupId === group.id ? 'active' : ''}" onclick="selectGroup('${group.id}', '${escapeHtml(group.displayName).replace(/'/g, "\\'")}')">
                     <div class="group-name"><i class="fas fa-envelope"></i> ${escapeHtml(group.displayName)}</div>
                     <div class="group-member-count">👥 ${group.memberCount || 0}</div>
                 </div>
             `).join('');
         }
         
+        async function selectGroup(groupId, groupName) {
+            selectedGroupId = groupId;
+            renderGroupsList();
+            
+            document.getElementById('selectedGroupTitle').innerHTML = `<i class="fas fa-users"></i> ${escapeHtml(groupName)} - Members`;
+            document.getElementById('membersListContainer').innerHTML = '<div class="loading-members"><div class="spinner" style="width:30px;height:30px;margin:0 auto 12px;"></div><p>Loading members...</p></div>';
+            
+            try {
+                const res = await fetch(`/api/groups/${groupId}/members`);
+                const data = await res.json();
+                if(data.error) {
+                    document.getElementById('membersListContainer').innerHTML = `<div class="loading-members">❌ Error loading members</div>`;
+                    return;
+                }
+                renderMembersList(data.members);
+            } catch(e) {
+                document.getElementById('membersListContainer').innerHTML = `<div class="loading-members">❌ Network error</div>`;
+            }
+        }
+        
         function renderMembersList(members) {
-            if (members.length === 0) {
+            if (!members || members.length === 0) {
                 document.getElementById('membersListContainer').innerHTML = '<div class="loading-members">📭 No members in this group</div>';
                 return;
             }
@@ -795,12 +816,6 @@ DASHBOARD_HTML = '''
                     <div><span class="badge badge-primary">${member.userType === 'Guest' ? 'Guest' : 'Member'}</span></div>
                 </div>
             `).join('');
-        }
-        
-        function selectGroup(groupId, groupName) {
-            selectedGroupId = groupId;
-            renderGroupsList();
-            loadGroupMembers(groupId, groupName);
         }
         
         function escapeHtml(text) {
@@ -907,6 +922,7 @@ DASHBOARD_HTML = '''
             renderTable();
         }
         
+        // ============ PERBAIKAN: FUNGSI SHOW PAGE ============
         function showPage(page) {
             if (page === 'dashboard') {
                 document.getElementById('dashboardPage').classList.remove('hidden');
@@ -922,6 +938,16 @@ DASHBOARD_HTML = '''
                 document.getElementById('tabDashboard').classList.remove('active');
                 document.getElementById('tabGroups').classList.add('active');
                 document.getElementById('tabBilling').classList.remove('active');
+                
+                // LOAD GROUPS SETIAP BUKA HALAMAN GROUPS
+                if (allGroups.length === 0) {
+                    loadGroups();
+                } else {
+                    renderGroupsList();
+                    if (allGroups.length > 0 && !selectedGroupId) {
+                        selectGroup(allGroups[0].id, allGroups[0].displayName);
+                    }
+                }
             } else {
                 document.getElementById('dashboardPage').classList.add('hidden');
                 document.getElementById('groupsPage').classList.add('hidden');
@@ -1127,7 +1153,6 @@ def api_groups():
     
     headers = {"Authorization": f"Bearer {token}"}
     
-    # Ambil semua distribution groups dan mail-enabled security groups
     groups = []
     url = "https://graph.microsoft.com/v1.0/groups?$filter=mailEnabled eq true or groupTypes/any(c:c eq 'Unified')&$select=id,displayName,mail,groupTypes&$top=999"
     
@@ -1136,19 +1161,30 @@ def api_groups():
         if response.status_code == 200:
             data = response.json()
             for group in data.get("value", []):
-                # Hitung jumlah member (API terpisah, kita estimasi dulu)
+                # Hitung jumlah member
+                member_count = 0
+                member_url = f"https://graph.microsoft.com/v1.0/groups/{group.get('id')}/members/$count"
+                count_resp = requests.get(member_url, headers={**headers, "ConsistencyLevel": "eventual"})
+                if count_resp.status_code == 200:
+                    try:
+                        member_count = int(count_resp.text)
+                    except:
+                        member_count = 0
+                
                 groups.append({
                     "id": group.get("id"),
                     "displayName": group.get("displayName", "N/A"),
                     "mail": group.get("mail", ""),
                     "groupType": "Unified" if "Unified" in group.get("groupTypes", []) else "Distribution",
-                    "memberCount": 0  # Akan diupdate pas load members
+                    "memberCount": member_count
                 })
             url = data.get("@odata.nextLink")
         else:
             break
     
-    return jsonify({'groups': groups})
+    # Urutkan berdasarkan nama
+    groups.sort(key=lambda x: x['displayName'].lower())
+    return jsonify({'groups': groups, 'total': len(groups)})
 
 @app.route('/api/groups/<group_id>/members')
 def api_group_members(group_id):
