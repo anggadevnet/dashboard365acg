@@ -821,7 +821,7 @@ LOGIN_HTML = '''
 <body>
     <div class="login-card">
         <div class="logo-icon"><i class="fas fa-chart-line" style="color: white;"></i></div>
-        <h1>LicMonitor</h1>
+        <h1>LicMonitor ACG</h1>
         <p class="subtitle">Microsoft 365 License & Billing Intelligence</p>
         <div class="features">
             <li><i class="fas fa-building"></i> Internal & Guest Users</li>
@@ -831,7 +831,7 @@ LOGIN_HTML = '''
             <li><i class="fas fa-download"></i> Export Reports to CSV</li>
         </div>
         <a href="/login" class="btn-login"><i class="fab fa-microsoft"></i> Login with Microsoft 365</a>
-        <div class="footer">Powered by Lintasarta</div>
+        <div class="footer">Powered by ACG</div>
     </div>
 </body>
 </html>
