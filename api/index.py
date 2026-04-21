@@ -462,7 +462,7 @@ DASHBOARD_HTML = '''
         <div class="logo">
             <div class="logo-icon"><i class="fas fa-chart-line"></i></div>
             <div>
-                <div class="logo-text">LicMonitor</div>
+                <div class="logo-text">LicMonitor ACG</div>
                 <div class="logo-sub">Lintasarta</div>
             </div>
         </div>
